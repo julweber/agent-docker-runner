@@ -1,0 +1,44 @@
+{
+  "providers": {
+    "lmstudio": {
+      "baseUrl": "http://host.docker.internal:1234/v1",
+      "api": "openai-completions",
+      "apiKey": "not-required",
+      "models": [
+        {
+          "id": "qwen/qwen3-coder-next",
+          "name": "qwen3-coder-next (LMStudio)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 128000,
+          "maxTokens": 16000,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    },
+    "ollama": {
+      "baseUrl": "http://host.docker.internal:11434/v1",
+      "api": "openai-completions",
+      "apiKey": "not-required",
+      "models": [
+        {
+          "id": "llama3.1:8b",
+          "name": "Llama 3.1 8B (Local)",
+          "reasoning": false,
+          "input": ["text"],
+          "contextWindow": 128000,
+          "maxTokens": 32000,
+          "cost": { "input": 0, "output": 0, "cacheRead": 0, "cacheWrite": 0 }
+        }
+      ]
+    },
+    "openrouter": {
+      "baseUrl": "https://openrouter.ai/api/v1",
+      "apiKey": "OPENROUTER_API_KEY",
+      "api": "openai-completions",
+      "models": [
+        { "id": "anthropic/claude-sonnet-4" }
+      ]
+    }
+  }
+}
