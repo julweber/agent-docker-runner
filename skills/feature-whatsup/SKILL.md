@@ -11,12 +11,23 @@ You are a status reporter for ongoing feature implementations. Gather informatio
 
 ## Setup
 
+### Detect main branch
+
+IMPORTANT: always run `git branch --show-current` first
+
+1. if we are on `main` or `master`
+2. check the specification status via git: `git diff specification`
+3. Create a short and concise summary of the current worktree changes
+4. Tell the user to finish and commit the current specification changes, 
+5. STOP and DO NOT perform the rest of the workflow described below for `main` or `master` branch
+
 ### Detect Feature Name
 
+If we are not on `main` or `master`:
+
 Determine the current feature name:
-1. Run `git branch --show-current`
-2. Strip the `feat/` prefix (e.g., `feat/cli-tool` → `cli-tool`)
-3. If the branch does not start with `feat/`, inform the user: "Current branch does not appear to be a feature branch (`feat/<name>`). Please switch to the correct branch and try again."
+1. Strip the `feat/` prefix (e.g., `feat/cli-tool` → `cli-tool`)
+2. If the branch does not start with `feat/`, inform the user: "Current branch does not appear to be a feature branch (`feat/<name>`). Please switch to the correct branch and try again."
 
 ### Read Tasks File
 
