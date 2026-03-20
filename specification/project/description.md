@@ -41,7 +41,7 @@ Agent Docker Runner provides:
 ## Core Capabilities
 
 ### Current Features
-- Support for multiple coding agents: pi, opencode, Claude Code
+- Support for multiple coding agents: pi, opencode, Claude Code, Codex CLI
 - Configurable workspace mounting as `/workspace` inside containers
 - Flexible configuration directory overrides
 - Headless mode with one-shot prompts

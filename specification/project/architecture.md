@@ -111,7 +111,7 @@ A specialized component that handles configuration directory access:
 
 The execution environment inside each container:
 
-- **Agent-specific**: Different Dockerfiles and entrypoints for pi, opencode, claude
+- **Agent-specific**: Different Dockerfiles and entrypoints for pi, opencode, claude, codex
 - **Non-root execution**: Runs as `node` user (UID 1000) for security
 - **Workspace focus**: All file operations occur in `/workspace`
 - **API connectivity**: Outbound network access to AI model providers
@@ -135,7 +135,7 @@ coding-agent/<agent>:<tag>
 ```
 
 Where:
-- `<agent>` is one of: `pi`, `opencode`, `claude`
+- `<agent>` is one of: `pi`, `opencode`, `claude`, `codex`
 - `<tag>` defaults to `latest` but can be pinned for reproducibility
 
 Images are built locally and never pushed to external registries.

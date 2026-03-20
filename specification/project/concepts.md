@@ -6,11 +6,12 @@ This document defines the key terms and abstractions used throughout the project
 
 ### Agent
 
-An **Agent** is a coding AI that runs within an isolated container. The system currently supports three agent types:
+An **Agent** is a coding AI that runs within an isolated container. The system currently supports four agent types:
 
 - `pi` — pi coding agent
 - `opencode` — opencode platform
 - `claude` — Claude Code by Anthropic
+- `codex` — OpenAI Codex CLI
 
 Each agent type has its own configuration format and runtime requirements, but all share the same isolation model and execution semantics.
 

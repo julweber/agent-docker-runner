@@ -29,7 +29,7 @@ coding-agent/<agent>:<tag>
 ```
 
 Where:
-- `<agent>` is one of: `pi`, `opencode`, `claude`
+- `<agent>` is one of: `pi`, `opencode`, `claude`, `codex`
 - `<tag>` defaults to `latest` but can be pinned for reproducibility (e.g., `1.2.3`)
 
 Examples:
@@ -48,6 +48,7 @@ Agent configuration files follow the native format of each agent:
 | pi | `~/.pi/agent/settings.json`, `~/.pi/agent/models.json` | JSON |
 | opencode | `~/.config/opencode/opencode.json` | JSON |
 | claude | `~/.claude/settings.json`, `~/.claude.json` | JSON |
+| codex | `~/.codex/config.toml` | TOML |
 
 ### Staged-Config Pattern
 

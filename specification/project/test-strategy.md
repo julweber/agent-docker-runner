@@ -34,6 +34,7 @@ Each supported agent must pass an integration test that verifies:
 | `pi` | `./run.sh --prompt "Just say Hello!" pi` | Greeting from pi agent |
 | `opencode` | `./run.sh --prompt "Just say Hello!" opencode` | Greeting from opencode |
 | `claude` | `./run.sh --prompt "Just say Hello!" claude` | Greeting from Claude Code |
+| `codex` | `./run.sh --prompt "Just say Hello!" codex` | Greeting from Codex CLI |
 
 ### Test Execution
 
@@ -43,11 +44,13 @@ Run all agent integration tests:
 ./build.sh pi
 ./build.sh opencode
 ./build.sh claude
+./build.sh codex
 
 # Run integration tests for each agent
 ./run.sh --prompt "Just say Hello!" pi && echo "✓ pi test passed" || echo "✗ pi test failed"
 ./run.sh --prompt "Just say Hello!" opencode && echo "✓ opencode test passed" || echo "✗ opencode test failed"
 ./run.sh --prompt "Just say Hello!" claude && echo "✓ claude test passed" || echo "✗ claude test failed"
+./run.sh --prompt "Just say Hello!" codex && echo "✓ codex test passed" || echo "✗ codex test failed"
 ```
 
 ## Future Test Strategy (To Be Defined)
