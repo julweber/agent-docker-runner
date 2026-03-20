@@ -109,7 +109,8 @@ If `~/.local/bin` is not on your `PATH`, `install.sh` prints a reminder.
 
 ### Uninstallation
 
-Remove the installed CLI and bundled runtime files:
+Remove the installed CLI and bundled runtime files. Run with `sudo` to bypass
+permission issues on systems where `~/.local/bin` is not writable by your user:
 
 ```bash
 ./uninstall.sh
