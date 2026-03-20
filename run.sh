@@ -5,7 +5,7 @@ INVOKE_DIR=$PWD
 
 cd "$(cd "$(dirname "$0")" && pwd)"
 
-KNOWN_AGENTS=("pi" "opencode" "claude")
+KNOWN_AGENTS=("pi" "opencode" "claude" "codex")
 
 WORKSPACE="$INVOKE_DIR"
 CONFIG_DIR=""
@@ -22,7 +22,7 @@ usage() {
 Usage: ./run.sh [OPTIONS] <agent>
 
 Arguments:
-  agent                   Agent to run. Currently supported: pi, opencode, claude
+  agent                   Agent to run. Currently supported: pi, opencode, claude, codex
 
 Options:
   -w, --workspace DIR     Host directory mounted as /workspace inside the
@@ -32,6 +32,7 @@ Options:
                             pi:       ~/.pi/
                             opencode: ~/.config/opencode/
                             claude:   ~/.claude/
+                            codex:    ~/.codex/
                           Mounted read-only to a staging path and copied into
                           the agent's config directory at container startup.
                           Must exist on the host.
@@ -52,6 +53,7 @@ Options:
                           is the model ID (e.g. evo/qwen/qwen3-coder-next).
                           opencode: "provider/model" format (e.g. anthropic/claude-sonnet-4).
                           claude:   alias (e.g. sonnet, opus) or full name (e.g. claude-sonnet-4-6).
+                          codex:    model name (e.g. o4-mini, o3).
   -h, --help              Show this help text.
 EOF
 }
@@ -143,6 +145,7 @@ if [[ -z "$CONFIG_DIR" ]]; then
     pi)       CONFIG_DIR="$HOME/.pi" ;;
     opencode) CONFIG_DIR="$HOME/.config/opencode" ;;
     claude)   CONFIG_DIR="$HOME/.claude" ;;
+    codex)    CONFIG_DIR="$HOME/.codex" ;;
   esac
 fi
 
@@ -273,6 +276,12 @@ fi
 
 if [[ -n "$MODEL" ]]; then
   CMD+=(--env "AGENT_MODEL=$MODEL")
+fi
+
+# Forward API key env vars for codex (auth via env var, not config file)
+if [[ "$AGENT" == "codex" ]]; then
+  [[ -n "${CODEX_API_KEY:-}" ]]  && CMD+=(--env "CODEX_API_KEY=$CODEX_API_KEY")
+  [[ -n "${OPENAI_API_KEY:-}" ]] && CMD+=(--env "OPENAI_API_KEY=$OPENAI_API_KEY")
 fi
 
 CMD+=("$IMAGE")

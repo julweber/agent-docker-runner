@@ -1,0 +1,36 @@
+# ~/.codex/config.toml — Codex CLI configuration
+# Copy this file to config.toml inside your config-examples/codex/ directory,
+# then mount that directory to /mnt/agent-config-ro when running the container.
+#
+# Full reference: https://developers.openai.com/codex/config-reference
+
+# ── Model ─────────────────────────────────────────────────────────────────────
+# Default model to use. Can be overridden at runtime with AGENT_MODEL.
+model = "o4-mini"
+
+# ── Sandbox ───────────────────────────────────────────────────────────────────
+# danger-full-access is safe here because the Docker container is the sandbox.
+# Other options: "read-only" | "workspace-write"
+sandbox_mode = "danger-full-access"
+
+# ── Approval policy ───────────────────────────────────────────────────────────
+# "never" = auto-approve all commands (appropriate for containerised runs).
+# Other options: "on-request" | "untrusted"
+approval_policy = "never"
+
+# ── Suppress interactive notices ─────────────────────────────────────────────
+# Prevents Codex from pausing to show one-time warning dialogs.
+[notice]
+hide_full_access_warning = true
+
+# ── Custom OpenAI-compatible provider (optional) ─────────────────────────────
+# Uncomment and adjust to point Codex at a local or alternative endpoint.
+# [model_providers.custom]
+# name        = "My Provider"
+# base_url    = "http://host.docker.internal:1234/v1"
+# env_key     = "OPENAI_API_KEY"
+
+# ── MCP servers (optional) ───────────────────────────────────────────────────
+# [mcp_servers.my-server]
+# command = "npx"
+# args    = ["-y", "@my-org/my-mcp-server"]

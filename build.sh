@@ -3,7 +3,7 @@ set -euo pipefail
 
 cd "$(cd "$(dirname "$0")" && pwd)"
 
-KNOWN_AGENTS=("pi" "opencode" "claude")
+KNOWN_AGENTS=("pi" "opencode" "claude" "codex")
 
 TAG="latest"
 NO_CACHE=""
@@ -14,7 +14,7 @@ usage() {
 Usage: ./build.sh [OPTIONS] <agent>
 
 Arguments:
-  agent                   Agent to build. Currently supported: pi, opencode
+  agent                   Agent to build. Currently supported: pi, opencode, claude, codex
 
 Options:
       --tag TAG           Docker image tag to apply. Default: latest.

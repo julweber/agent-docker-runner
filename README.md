@@ -1,7 +1,64 @@
 # Agent Docker Runner
 
-Run coding agents (pi, opencode, claude) inside isolated Docker containers — one
-command to launch, one directory to share.
+Run coding agents inside isolated Docker containers with a single command and a
+single shared workspace. Build locally, point at a repo, and let the agent work
+with full freedom inside the container instead of on your host machine.
+
+---
+
+## For Contributors
+
+This repository contains two layers:
+
+1. **The product**: Agent Docker Runner itself
+   The Docker-based runner in `run.sh`, `build.sh`, and `agents/`.
+2. **The development workflow used to build the product**
+   A spec-driven framework in `bin/spec`, `scripts/`, `skills/`, and
+   `specification/`.
+
+The spec framework is **not part of the shipped product surface**. It exists to
+help contributors design features clearly, review them before implementation,
+break them into tasks, and run structured implementation loops.
+
+If you are contributing to this repository, you should use it. It gives you:
+
+- A clear place to define behavior before coding
+- Faster onboarding into existing feature intent and constraints
+- A repeatable workflow for brainstorming, review, task generation, and implementation
+- Better handoff between humans and coding agents
+
+### For AI Coding Agents
+
+If you are a coding agent working in this repository, load the assistant skill
+to get full context on the project, all CLI scripts, and the spec/task
+workflow:
+
+```
+skills/agent-docker-runner-assistant/SKILL.md
+```
+
+Point your agent at that file (e.g. pass it as a skill, add it to context, or
+read it directly) and it will have everything needed to build, run, and
+contribute to this project.
+
+### For Human Developers
+
+If you want the fastest way to contribute effectively, use the spec workflow:
+
+```bash
+# See the workflow entrypoint
+bin/spec --help
+
+# Check project status
+bin/spec status
+
+# Start a new feature workflow
+bin/spec new-feature
+```
+
+The workflow is opinionated on purpose. It helps contributors move from vague
+idea to reviewed spec to task list to implementation with less ambiguity and
+less rework.
 
 ---
 
@@ -10,6 +67,10 @@ command to launch, one directory to share.
 - [Docker](https://docs.docker.com/get-docker/) installed and running.
 - The agent image must be built first (see [Building images](#building-images)).
 - No other dependencies — bash is all you need on the host.
+
+> For contributors using the spec workflow, additional tools such as `git` and
+> `yq` are used by some helper scripts. They are not required just to run an
+> agent container with `run.sh`.
 
 ---
 
@@ -20,6 +81,7 @@ command to launch, one directory to share.
 | `pi` | [pi coding agent](https://github.com/mariozechner/pi-coding-agent) | `~/.pi/` |
 | `opencode` | [opencode](https://opencode.ai) | `~/.config/opencode/` |
 | `claude` | [Claude Code](https://claude.ai/code) by Anthropic | `~/.claude/` |
+| `codex` | OpenAI Codex CLI | `~/.codex/` |
 
 ---
 
@@ -74,10 +136,27 @@ cp config-examples/claude/.claude.json.example ~/.claude.json
 ./run.sh claude
 ```
 
+### codex
+
+```bash
+# 1. Build the image
+./build.sh codex
+
+# 2. Set up ~/.codex/ if you use file-based Codex config
+mkdir -p ~/.codex
+cp config-examples/codex/config.toml.example ~/.codex/config.toml
+
+# 3. Export your API key if needed
+export OPENAI_API_KEY=your-key-here
+
+# 4. Launch an interactive session in the current directory
+./run.sh codex
+```
+
 Your current directory is mounted as `/workspace` — the agent can read and write files there.
 
 > **Already using these agents on the host?** Your existing config at `~/.pi/`,
-> `~/.config/opencode/`, or `~/.claude/` is picked up automatically — just
+> `~/.config/opencode/`, `~/.claude/`, or `~/.codex/` is picked up automatically — just
 > build the image and run.
 
 ---
@@ -92,6 +171,7 @@ to override with a different directory.
 | `pi` | `~/.pi/` |
 | `opencode` | `~/.config/opencode/` |
 | `claude` | `~/.claude/` |
+| `codex` | `~/.codex/` |
 
 ### pi (`~/.pi/`)
 
@@ -377,6 +457,54 @@ non-root `node` user (who owns the agent's config home inside the container).
 
 ---
 
+## Contributor Workflow
+
+Agent Docker Runner is built with the spec framework that lives in this
+repository. That framework is a **development tool for contributors**, not a
+runtime dependency of the runner itself.
+
+If you are changing behavior, adding an agent, or implementing a feature, this
+is the preferred path:
+
+1. Define or refine the feature spec.
+2. Review the spec before writing code.
+3. Generate a task list from the reviewed spec.
+4. Implement against that task list in a worktree.
+
+Typical commands:
+
+```bash
+# Inspect available workflow commands
+bin/spec --help
+
+# Create or guide a new feature workflow
+bin/spec new-feature
+
+# Brainstorm a specific feature
+bin/spec feature-brainstorm timeout-enforcement
+
+# Review an existing feature spec
+bin/spec review timeout-enforcement
+
+# Generate implementation tasks
+bin/spec generate-tasks timeout-enforcement
+
+# Launch the implementation loop
+bin/spec implement timeout-enforcement --agent codex
+```
+
+Why this is worth using:
+
+- Specs make behavior explicit before code starts drifting
+- Reviews happen at the behavior level, where changes are cheaper
+- Task generation reduces missed edge cases and forgotten tests
+- Worktrees keep feature work isolated and easier to reason about
+
+If you are only trying to run an agent in a container, you can ignore this
+entire section and just use `build.sh` and `run.sh`.
+
+---
+
 ## Adding More Agents
 
 1. Create `agents/<name>/Dockerfile` — install the agent, create a non-root user,
@@ -397,8 +525,13 @@ non-root `node` user (who owns the agent's config home inside the container).
 
 ```
 agent-docker-runner/
+├── bin/
+│   └── spec              # Contributor workflow entrypoint (not product runtime)
 ├── agents/               # Agent-specific Dockerfiles and entrypoints
 │   ├── claude/
+│   │   ├── Dockerfile
+│   │   └── entrypoint.sh
+│   ├── codex/
 │   │   ├── Dockerfile
 │   │   └── entrypoint.sh
 │   ├── opencode/
@@ -409,10 +542,14 @@ agent-docker-runner/
 │       └── entrypoint.sh
 ├── config-examples/      # Example configuration files for each agent
 │   ├── claude/
+│   ├── codex/
 │   ├── opencode/
 │   └── pi/
+├── docs/                 # Design notes and internal review docs
 ├── build.sh              # Script to build agent images
 ├── run.sh                # Script to run agents in containers
 ├── fix_owner.sh          # Script to fix file ownership on Linux
-└── specification/        # Project specifications (not used)
+├── scripts/              # Contributor workflow scripts and helpers
+├── skills/               # Skills used by agents contributing to this repo
+└── specification/        # Product specs used during development
 ```
