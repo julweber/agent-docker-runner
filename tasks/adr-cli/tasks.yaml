@@ -37,8 +37,8 @@ tasks:
       - "A summary of total passed / failed is printed at the end"
       - "The test suite is expected to fail initially — a failing suite does not prevent this task from passing"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-002"
     title: "Create `cli/adr` scaffold with command routing"
@@ -58,14 +58,15 @@ tasks:
       - "specification/features/adr-cli/behaviors.md#behavior-13-adr-help-command"
       - "specification/features/adr-cli/behaviors.md#behavior-14-file-and-directory-layout-after-install"
     priority: 2
-    dependsOn: []
+    dependsOn:
+      - "task-002"
     successCriteria:
       - "`cli/adr` exists, has execute permission, and begins with `#!/usr/bin/env bash`"
       - "Running `cli/adr --help` (before install) prints a usage summary listing all subcommands"
       - "Running `cli/adr unknowncmd` exits with code 1 and prints an appropriate error"
       - "The list of known agents (pi, opencode, claude, codex) is defined as a shared variable or array"
       - "All existing tests continue to pass"
-    status: pending
+    status: passed
     attempts: 0
 
   - id: "task-003"
@@ -87,8 +88,8 @@ tasks:
       - "`adr --version` produces identical output to `adr version`"
       - "When VERSION file is missing, output is `adr (unknown version) — reinstall with install.sh` and exit code is 0"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-004"
     title: "Implement `adr help [command]` command"
@@ -112,8 +113,8 @@ tasks:
       - "`adr run --help` produces output identical to `adr help run`"
       - "`adr help fakecommand` exits with code 1 and prints an error about the unknown command"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-005"
     title: "Implement config loading and precedence"
@@ -143,8 +144,8 @@ tasks:
       - "CLI flags override both config sources (verified end-to-end in `adr run` tests)"
       - "Unknown keys in either config file are silently ignored"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-006"
     title: "Implement `install.sh`"
@@ -176,8 +177,8 @@ tasks:
       - "Script exits non-zero with an error message when source files are missing or target is unwritable"
       - "Script prints a PATH reminder when `~/.local/bin` is not in PATH"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-007"
     title: "Implement `uninstall.sh`"
@@ -202,8 +203,8 @@ tasks:
       - "Running `./uninstall.sh --yes` when nothing is installed exits 0 with message `adr does not appear to be installed.`"
       - "Without `--yes`, the script prompts for confirmation before proceeding"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-008"
     title: "Implement `adr build <agent>` command"
@@ -233,8 +234,8 @@ tasks:
       - "`adr build` (no argument) prompts and builds all agents on confirmation; rejection exits 0 without building"
       - "`adr build pi --tag ''` exits 1 with error `--tag requires a non-empty value`"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 2
 
   - id: "task-009"
     title: "Implement `adr status` command"
@@ -259,8 +260,8 @@ tasks:
       - "When no images are built, a hint to run `adr build <agent>` is printed"
       - "When Docker daemon is unreachable, exit code is 1 and the error message includes `Is Docker running?`"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-010"
     title: "Implement `adr run [agent]` command"
@@ -296,8 +297,8 @@ tasks:
       - "`adr run` with no agent and no `.adr` file exits 1 with the appropriate error"
       - "For pi, `--model anthropic/claude-opus-4` sets `AGENT_PROVIDER=anthropic` and `AGENT_MODEL=claude-opus-4` in the container"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-011"
     title: "Implement `adr update [agent]` command"
@@ -321,8 +322,8 @@ tasks:
       - "Each unbuilt agent is reported as skipped with a note (not an error)"
       - "Error handling for unknown agent and Docker daemon failure matches `adr build`"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-012"
     title: "Implement `adr fix-owner [DIR]` command"
@@ -345,8 +346,8 @@ tasks:
       - "A confirmation message naming the directory and user:group is printed on success"
       - "`adr fix-owner /nonexistent` exits 1 with an error referencing the missing directory"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-013"
     title: "Implement `adr config` command"
@@ -374,8 +375,8 @@ tasks:
       - "`adr config set` with no argument exits 1 with a usage error"
       - "`adr config set ADR_TAG` (no `=`) exits 1 with `Expected KEY=VALUE format`"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1
 
   - id: "task-014"
     title: "Implement shell completions and `adr completions` command"
@@ -386,7 +387,7 @@ tasks:
       `adr completions <shell>` prints the corresponding script to stdout;
       `adr completions install` auto-detects `$SHELL` and installs the script
       to the appropriate location (bash: `~/.bash_completion.d/adr`, zsh:
-      `~/.zsh/completions/_adr`, fish: `~/.config/fish/completions/adr.fish`),
+      `~/.zz/completions/_adr`, fish: `~/.config/fish/completions/adr.fish`),
       creating directories as needed and printing the installed path plus any
       rc-file source hint. Completions must cover: top-level commands, agent
       names after `build`/`run`/`update`, all flags for each command, shell
@@ -406,5 +407,5 @@ tasks:
       - "`adr completions powershell` exits 1 with an error naming the supported shells"
       - "Tab-completing `adr <TAB>` offers all top-level commands; `adr run <TAB>` offers agent names"
       - "All existing tests continue to pass"
-    status: pending
-    attempts: 0
+    status: passed
+    attempts: 1

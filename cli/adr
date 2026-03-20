@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+#
+# adr - Agent Docker Runner CLI
+#
+
+# shellcheck disable=SC1091
+
+set -euo pipefail
+
+ADR_BOOTSTRAP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+readonly ADR_BOOTSTRAP_DIR
+
+if [[ -f "${ADR_BOOTSTRAP_DIR}/main.sh" ]]; then
+    readonly ADR_CLI_DIR="${ADR_BOOTSTRAP_DIR}"
+else
+    readonly ADR_CLI_DIR="${HOME}/.local/share/adr/cli"
+fi
+
+if [[ ! -f "${ADR_CLI_DIR}/main.sh" ]]; then
+    echo "Error: adr runtime files not found in ${ADR_CLI_DIR}" >&2
+    echo "Reinstall with install.sh." >&2
+    exit 1
+fi
+
+source "${ADR_CLI_DIR}/lib/agents.sh"
+source "${ADR_CLI_DIR}/lib/config.sh"
+source "${ADR_CLI_DIR}/lib/docker.sh"
+source "${ADR_CLI_DIR}/commands/help.sh"
+source "${ADR_CLI_DIR}/commands/build.sh"
+source "${ADR_CLI_DIR}/commands/run.sh"
+source "${ADR_CLI_DIR}/commands/update.sh"
+source "${ADR_CLI_DIR}/commands/status.sh"
+source "${ADR_CLI_DIR}/commands/fix-owner.sh"
+source "${ADR_CLI_DIR}/commands/completions.sh"
+source "${ADR_CLI_DIR}/commands/config.sh"
+source "${ADR_CLI_DIR}/main.sh"
+
+main "$@"

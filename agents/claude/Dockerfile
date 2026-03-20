@@ -7,6 +7,7 @@ RUN apt-get update \
       gosu \
       curl \
       wget \
+      git \
       jq \
       python3 \
       python3-pip \

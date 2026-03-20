@@ -4,6 +4,10 @@ Run coding agents inside isolated Docker containers with a single command and a
 single shared workspace. Build locally, point at a repo, and let the agent work
 with full freedom inside the container instead of on your host machine.
 
+The primary user-facing interface is the installable `adr` CLI. Install it once
+with `install.sh`, then use `adr build`, `adr run`, `adr status`, and related
+commands from any directory.
+
 ---
 
 ## For Contributors
@@ -65,12 +69,68 @@ less rework.
 ## Prerequisites
 
 - [Docker](https://docs.docker.com/get-docker/) installed and running.
-- The agent image must be built first (see [Building images](#building-images)).
+- The agent image must be built first (see [Building Images](#building-images)).
 - No other dependencies — bash is all you need on the host.
 
 > For contributors using the spec workflow, additional tools such as `git` and
 > `yq` are used by some helper scripts. They are not required just to run an
 > agent container with `run.sh`.
+
+---
+
+## Installation
+
+Install the `adr` CLI into your local user account:
+
+```bash
+./install.sh
+```
+
+This installs:
+
+- `~/.local/bin/adr`
+- `~/.local/share/adr/cli/`
+- `~/.local/share/adr/agents/`
+- `~/.local/share/adr/config-examples/`
+- `~/.local/share/adr/completions/`
+- `~/.local/share/adr/VERSION`
+
+The install is safe to re-run. Existing user config in `~/.config/adr/config`
+and any project `.adr` files are preserved.
+
+After installation:
+
+```bash
+adr --help
+adr status
+```
+
+If `~/.local/bin` is not on your `PATH`, `install.sh` prints a reminder.
+
+### Uninstallation
+
+Remove the installed CLI and bundled runtime files:
+
+```bash
+./uninstall.sh
+```
+
+Or skip the confirmation prompt:
+
+```bash
+./uninstall.sh --yes
+```
+
+Uninstall removes:
+
+- `~/.local/bin/adr`
+- `~/.local/share/adr/`
+
+Uninstall does not remove:
+
+- `~/.config/adr/config`
+- project `.adr` files
+- built Docker images such as `coding-agent/pi:latest`
 
 ---
 
@@ -90,74 +150,86 @@ less rework.
 ### pi
 
 ```bash
-# 1. Build the image
-./build.sh pi
+# 1. Install the CLI
+./install.sh
 
-# 2. Set up ~/.pi/ (if you don't already have one)
+# 2. Build the image
+adr build pi
+
+# 3. Set up ~/.pi/ (if you don't already have one)
 cp -r config-examples/pi/ ~/.pi
 # Edit ~/.pi/agent/settings.json — add your API key(s) / configure provider
 
-# 3. Launch an interactive session in the current directory
-./run.sh pi
+# 4. Launch an interactive session in the current directory
+adr run pi
 ```
 
 ### opencode
 
 ```bash
-# 1. Build the image
-./build.sh opencode
+# 1. Install the CLI
+./install.sh
 
-# 2. Set up ~/.config/opencode/ (if you don't already have one)
+# 2. Build the image
+adr build opencode
+
+# 3. Set up ~/.config/opencode/ (if you don't already have one)
 mkdir -p ~/.config/opencode
 cp config-examples/opencode/opencode.json.example ~/.config/opencode/opencode.json
 # Edit ~/.config/opencode/opencode.json — add your API key(s) / configure provider
 
-# 3. Launch an interactive session in the current directory
-./run.sh opencode
+# 4. Launch an interactive session in the current directory
+adr run opencode
 ```
 
 ### claude
 
 ```bash
-# 1. Build the image
-./build.sh claude
+# 1. Install the CLI
+./install.sh
 
-# 2. Set up ~/.claude/ (if you don't already have one)
+# 2. Build the image
+adr build claude
+
+# 3. Set up ~/.claude/ (if you don't already have one)
 mkdir -p ~/.claude
 cp config-examples/claude/settings.json.example ~/.claude/settings.json
 # Edit ~/.claude/settings.json — add your Anthropic API key under "env"
 
-# 3. Set up ~/.claude.json — pre-approves the API key so Claude Code doesn't prompt
+# 4. Set up ~/.claude.json — pre-approves the API key so Claude Code doesn't prompt
 cp config-examples/claude/.claude.json.example ~/.claude.json
 # Edit ~/.claude.json — replace the placeholder with your real key
 # (must match the key in settings.json exactly)
 
-# 4. Launch an interactive session in the current directory
-./run.sh claude
+# 5. Launch an interactive session in the current directory
+adr run claude
 ```
 
 ### codex
 
 ```bash
-# 1. Build the image
-./build.sh codex
+# 1. Install the CLI
+./install.sh
 
-# 2. Set up ~/.codex/ if you use file-based Codex config
+# 2. Build the image
+adr build codex
+
+# 3. Set up ~/.codex/ if you use file-based Codex config
 mkdir -p ~/.codex
 cp config-examples/codex/config.toml.example ~/.codex/config.toml
 
-# 3. Export your API key if needed
+# 4. Export your API key if needed
 export OPENAI_API_KEY=your-key-here
 
-# 4. Launch an interactive session in the current directory
-./run.sh codex
+# 5. Launch an interactive session in the current directory
+adr run codex
 ```
 
 Your current directory is mounted as `/workspace` — the agent can read and write files there.
 
 > **Already using these agents on the host?** Your existing config at `~/.pi/`,
-> `~/.config/opencode/`, `~/.claude/`, or `~/.codex/` is picked up automatically — just
-> build the image and run.
+> `~/.config/opencode/`, `~/.claude/` plus `~/.claude.json`, or `~/.codex/`
+> is picked up automatically — just build the image and run.
 
 ---
 
@@ -235,7 +307,7 @@ The `approved` list must contain the **full API key** — the same value set in
 prevents the interactive *"Do you want to use this API key?"* prompt that would
 block container startup, especially in headless mode.
 
-`run.sh` reads `~/.claude.json` by default. Use `--config-file` to point to a
+`adr run` reads `~/.claude.json` by default. Use `--config-file` to point to a
 different location.
 
 ### How Config Works
@@ -250,33 +322,33 @@ the agent's config home inside the container and drops privileges before launchi
 
 ```bash
 # Interactive TUI session with a specific workspace
-./run.sh -w ~/projects/myapp pi
-./run.sh -w ~/projects/myapp opencode
-./run.sh -w ~/projects/myapp claude
+adr run -w ~/projects/myapp pi
+adr run -w ~/projects/myapp opencode
+adr run -w ~/projects/myapp claude
 
 # Headless: give the agent a one-shot task and exit (--prompt implies --headless)
-./run.sh -w ~/projects/myapp \
+adr run -w ~/projects/myapp \
   --prompt "Write tests for all untested functions in src/" pi
 
-./run.sh -w ~/projects/myapp \
+adr run -w ~/projects/myapp \
   --prompt "Write tests for all untested functions in src/" opencode
 
-./run.sh -w ~/projects/myapp \
+adr run -w ~/projects/myapp \
   --prompt "Write tests for all untested functions in src/" claude
 
 # Use a specific model (for pi, "provider/model" selects both)
-./run.sh -w ~/projects/myapp --model anthropic/claude-sonnet-4 pi
-./run.sh -w ~/projects/myapp --model anthropic/claude-sonnet-4 opencode
-./run.sh -w ~/projects/myapp --model sonnet claude
+adr run -w ~/projects/myapp --model anthropic/claude-sonnet-4 pi
+adr run -w ~/projects/myapp --model anthropic/claude-sonnet-4 opencode
+adr run -w ~/projects/myapp --model sonnet claude
 
 # Use a pinned image version
-./run.sh -w ~/projects/myapp --tag 1.2.3 claude
+adr run -w ~/projects/myapp --tag 1.2.3 claude
 
 # Debug: drop into a shell inside the container
-./run.sh -w ~/projects/myapp --shell claude
+adr run -w ~/projects/myapp --shell claude
 
 # Override config directory (e.g. for a separate project-specific config)
-./run.sh -w ~/projects/myapp -c ~/my-custom-config claude
+adr run -w ~/projects/myapp -c ~/my-custom-config claude
 ```
 
 ---
@@ -285,15 +357,15 @@ the agent's config home inside the container and drops privileges before launchi
 
 ```bash
 # Build latest
-./build.sh pi
-./build.sh opencode
-./build.sh claude
+adr build pi
+adr build opencode
+adr build claude
 
 # Build a specific version tag
-./build.sh --tag 1.2.3 claude
+adr build --tag 1.2.3 claude
 
 # Force a clean rebuild
-./build.sh --no-cache claude
+adr build --no-cache claude
 ```
 
 Images are named `coding-agent/<agent>:<tag>` and stay local — nothing is pushed to a registry.
@@ -332,13 +404,13 @@ LM Studio) are reachable without extra setup on any platform.
 
 ## Full CLI Reference
 
-### `run.sh`
+### `adr run`
 
 ```
-Usage: ./run.sh [OPTIONS] <agent>
+Usage: adr run [OPTIONS] [<agent>]
 
 Arguments:
-  agent                   Agent to run. Currently supported: pi, opencode, claude
+  agent                   Agent to run. Supported: pi, opencode, claude, codex
 
 Options:
   -w, --workspace DIR     Host directory mounted as /workspace inside the
@@ -348,6 +420,7 @@ Options:
                             pi:       ~/.pi/
                             opencode: ~/.config/opencode/
                             claude:   ~/.claude/
+                            codex:    ~/.codex/
                           Mounted read-only to a staging path and copied into
                           the agent's config directory at container startup.
                           Must exist on the host.
@@ -368,16 +441,17 @@ Options:
                           is the model ID (e.g. evo/qwen/qwen3-coder-next).
                           opencode: "provider/model" format (e.g. anthropic/claude-sonnet-4).
                           claude:   alias (e.g. sonnet, opus) or full name (e.g. claude-sonnet-4-6).
+                          codex:    model name understood by the Codex CLI.
   -h, --help              Show this help text.
 ```
 
-### `build.sh`
+### `adr build`
 
 ```
-Usage: ./build.sh [OPTIONS] <agent>
+Usage: adr build [OPTIONS] [<agent>]
 
 Arguments:
-  agent                   Agent to build. Currently supported: pi, opencode, claude
+  agent                   Agent to build. Supported: pi, opencode, claude, codex
 
 Options:
       --tag TAG           Docker image tag to apply. Default: latest.
@@ -386,10 +460,10 @@ Options:
   -h, --help              Show this help text.
 ```
 
-### `fix_owner.sh`
+### `adr fix-owner`
 
 ```
-Usage: ./fix_owner.sh [directory]
+Usage: adr fix-owner [directory]
 
 Changes ownership of all files in a directory recursively to the current user.
 
@@ -420,10 +494,10 @@ recursively to your current user:
 
 ```bash
 # Fix ownership in current directory
-./fix_owner.sh
+adr fix-owner
 
 # Or specify a target directory
-./fix_owner.sh /path/to/workspace
+adr fix-owner /path/to/workspace
 ```
 
 ### macOS — no special action needed
@@ -501,7 +575,7 @@ Why this is worth using:
 - Worktrees keep feature work isolated and easier to reason about
 
 If you are only trying to run an agent in a container, you can ignore this
-entire section and just use `build.sh` and `run.sh`.
+entire section and just use `adr`.
 
 ---
 
@@ -512,12 +586,11 @@ entire section and just use `build.sh` and `run.sh`.
 2. Create `agents/<name>/entrypoint.sh` — translate `AGENT_HEADLESS`,
    `AGENT_PROMPT`, `AGENT_SHELL`, `AGENT_PROVIDER`, `AGENT_MODEL` env vars into
    the agent's own CLI flags.
-3. Add the agent name to `KNOWN_AGENTS` in **both** `build.sh` and `run.sh`
-   (one-line change in each).
+3. Add the agent name to `KNOWN_AGENTS` in the ADR CLI runtime under `cli/`.
 4. Document the config layout in `README.md` and add an example under
    `config-examples/<name>/`.
 
-`run.sh` needs no structural changes — it is agent-agnostic by design.
+`adr run` is agent-agnostic by design once the entrypoint contract is in place.
 
 ---
 
