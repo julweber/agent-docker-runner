@@ -1,0 +1,410 @@
+featureName: adr-cli
+branchName: feat/adr-cli
+tasks:
+  - id: "task-001"
+    title: "Write automated test suite from tests.md"
+    description: >
+      Create a test script (e.g. `tests/adr_cli_test.sh`) that implements the
+      test cases defined in `specification/features/adr-cli/tests.md`. Cover
+      all 14 test groups: installation, uninstallation, build, run, update,
+      status, fix-owner, global config, project .adr, adr config, shell
+      completions, version, help, and config precedence. Tests should be
+      runnable via a single command and report pass/fail per test case. The
+      test suite is expected to fail initially — that is intentional and does
+      not block this task from being marked complete. The goal of this task is
+      solely to produce a correct, complete test harness.
+    source:
+      - "specification/features/adr-cli/tests.md#test-1-installation"
+      - "specification/features/adr-cli/tests.md#test-2-uninstallation"
+      - "specification/features/adr-cli/tests.md#test-3-adr-build"
+      - "specification/features/adr-cli/tests.md#test-4-adr-run"
+      - "specification/features/adr-cli/tests.md#test-5-adr-update"
+      - "specification/features/adr-cli/tests.md#test-6-adr-status"
+      - "specification/features/adr-cli/tests.md#test-7-adr-fix-owner"
+      - "specification/features/adr-cli/tests.md#test-8-global-config-file"
+      - "specification/features/adr-cli/tests.md#test-9-project-level-config-file-adr"
+      - "specification/features/adr-cli/tests.md#test-10-adr-config"
+      - "specification/features/adr-cli/tests.md#test-11-shell-completions"
+      - "specification/features/adr-cli/tests.md#test-12-adr-version"
+      - "specification/features/adr-cli/tests.md#test-13-precedence--config-layering"
+      - "specification/features/adr-cli/tests.md#test-14-adr-help"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "A test script exists at `tests/adr_cli_test.sh` (or equivalent) and is executable"
+      - "The script covers all test groups from tests.md (installation through help)"
+      - "Each test case reports a labelled PASS or FAIL result rather than aborting on first failure"
+      - "A summary of total passed / failed is printed at the end"
+      - "The test suite is expected to fail initially — a failing suite does not prevent this task from passing"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-002"
+    title: "Create `cli/adr` scaffold with command routing"
+    description: >
+      Create the `cli/adr` bash executable that will serve as the main
+      entrypoint for all `adr` commands. Implement the top-level argument
+      parser that dispatches to subcommands (build, run, update, status,
+      fix-owner, completions, config, version, help). Include a `--version`
+      and `-h`/`--help` short-circuit at the top level. Each subcommand
+      handler can be a stub (prints "not yet implemented") at this stage.
+      The file must be placed at `cli/adr`, be chmod +x, and use
+      `#!/usr/bin/env bash` as its shebang. Also define the list of known
+      agents (pi, opencode, claude, codex) as a shared constant used by
+      all subcommands.
+    source:
+      - "specification/features/adr-cli/behaviors.md#overview"
+      - "specification/features/adr-cli/behaviors.md#behavior-13-adr-help-command"
+      - "specification/features/adr-cli/behaviors.md#behavior-14-file-and-directory-layout-after-install"
+    priority: 2
+    dependsOn: []
+    successCriteria:
+      - "`cli/adr` exists, has execute permission, and begins with `#!/usr/bin/env bash`"
+      - "Running `cli/adr --help` (before install) prints a usage summary listing all subcommands"
+      - "Running `cli/adr unknowncmd` exits with code 1 and prints an appropriate error"
+      - "The list of known agents (pi, opencode, claude, codex) is defined as a shared variable or array"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-003"
+    title: "Implement `adr version` command"
+    description: >
+      Implement the `version` subcommand and `--version` flag in `cli/adr`.
+      The command reads `~/.local/share/adr/VERSION` and prints `adr <version>`.
+      If the VERSION file is missing, print `adr (unknown version) — reinstall
+      with install.sh` without a non-zero exit. `adr --version` must produce
+      identical output to `adr version`.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-12-adr-version"
+      - "specification/features/adr-cli/tests.md#test-12-adr-version"
+    priority: 3
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr version` prints `adr <semver>` when VERSION file exists"
+      - "`adr --version` produces identical output to `adr version`"
+      - "When VERSION file is missing, output is `adr (unknown version) — reinstall with install.sh` and exit code is 0"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-004"
+    title: "Implement `adr help [command]` command"
+    description: >
+      Implement the `help` subcommand (and `-h`/`--help` flags) in `cli/adr`.
+      `adr help` prints a summary of all commands with one-line descriptions,
+      matching the format in Behavior 13. `adr help <command>` (or `adr
+      <command> --help`) prints the full option reference for that command.
+      `adr help <unknown-command>` exits with code 1 and prints an error.
+      Each subcommand's `--help` output must list all its flags and options.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-13-adr-help-command"
+      - "specification/features/adr-cli/tests.md#test-14-adr-help"
+    priority: 4
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr help` prints the usage line `Usage: adr <command> [options]` and lists all commands"
+      - "`adr --help` and `adr -h` produce output identical to `adr help`"
+      - "`adr help run` lists all flags for `adr run` (--workspace, --config, --prompt, --headless, --shell, --tag, --model)"
+      - "`adr run --help` produces output identical to `adr help run`"
+      - "`adr help fakecommand` exits with code 1 and prints an error about the unknown command"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-005"
+    title: "Implement config loading and precedence"
+    description: >
+      Implement the config loading subsystem used by all `adr` commands.
+      This covers three layers: (1) built-in defaults, (2) global config
+      at `~/.config/adr/config` (shell-sourceable key=value), (3) project
+      `.adr` file discovered by walking up from `$PWD` to filesystem root.
+      The effective value for any key is the highest-precedence source that
+      defines it, with explicit CLI flags overriding everything. Supported
+      keys: ADR_TAG, ADR_AGENT, ADR_MODEL_PI, ADR_MODEL_CLAUDE,
+      ADR_MODEL_OPENCODE, ADR_MODEL_CODEX. Missing config files must not
+      cause errors. Unknown keys must be silently ignored.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-8-global-config-file-confgadrconfigig"
+      - "specification/features/adr-cli/behaviors.md#behavior-9-project-level-config-file-adr"
+      - "specification/features/adr-cli/tests.md#test-8-global-config-file"
+      - "specification/features/adr-cli/tests.md#test-9-project-level-config-file-adr"
+      - "specification/features/adr-cli/tests.md#test-13-precedence--config-layering"
+    priority: 5
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "Global config `~/.config/adr/config` is sourced if present; absence is not an error"
+      - "Project `.adr` is discovered by walking up from `$PWD`; the first file found wins"
+      - "Project `.adr` values override global config values for the same key"
+      - "CLI flags override both config sources (verified end-to-end in `adr run` tests)"
+      - "Unknown keys in either config file are silently ignored"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-006"
+    title: "Implement `install.sh`"
+    description: >
+      Create `install.sh` at the repository root. The script must: copy
+      `cli/adr` to `~/.local/bin/adr` with execute permissions; copy the
+      `agents/` tree to `~/.local/share/adr/agents/`; copy `config-examples/`
+      to `~/.local/share/adr/config-examples/`; copy shell completion files
+      to `~/.local/share/adr/completions/`; write the repository's VERSION
+      string to `~/.local/share/adr/VERSION`. It should check whether
+      `~/.local/bin` is on PATH and print a reminder if not. On success it
+      prints "adr installed. Run 'adr status' to check your agents." The
+      script must be idempotent (safe to re-run as upgrade), must never touch
+      `~/.config/adr/config` or project `.adr` files, and must exit non-zero
+      with a clear error and no partial install on any failure (missing source
+      files, permission errors). In CI (no TTY), it must skip interactive
+      prompts.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-1-installation-via-installsh"
+      - "specification/features/adr-cli/behaviors.md#behavior-14-file-and-directory-layout-after-install"
+      - "specification/features/adr-cli/tests.md#test-1-installation"
+    priority: 6
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`~/.local/bin/adr` exists and is executable after running `./install.sh`"
+      - "`~/.local/share/adr/VERSION`, `agents/`, `config-examples/`, and `completions/` are all present"
+      - "Running `./install.sh` a second time succeeds (exit 0) without touching `~/.config/adr/config`"
+      - "Script exits non-zero with an error message when source files are missing or target is unwritable"
+      - "Script prints a PATH reminder when `~/.local/bin` is not in PATH"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-007"
+    title: "Implement `uninstall.sh`"
+    description: >
+      Create `uninstall.sh` at the repository root. The script removes
+      `~/.local/bin/adr` and the entire `~/.local/share/adr/` tree. It must
+      NOT remove `~/.config/adr/config`, any project `.adr` files, or any
+      Docker images. By default it prompts for confirmation before deleting;
+      the `--yes` flag skips the prompt. If `adr` does not appear to be
+      installed (files missing), it exits cleanly with code 0 and a message
+      saying so.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-2-uninstallation-via-uninstallsh"
+      - "specification/features/adr-cli/tests.md#test-2-uninstallation"
+    priority: 7
+    dependsOn:
+      - "task-006"
+    successCriteria:
+      - "`./uninstall.sh --yes` removes `~/.local/bin/adr` and `~/.local/share/adr/`"
+      - "`~/.config/adr/config` is not removed by uninstall"
+      - "Docker images are not touched by uninstall"
+      - "Running `./uninstall.sh --yes` when nothing is installed exits 0 with message `adr does not appear to be installed.`"
+      - "Without `--yes`, the script prompts for confirmation before proceeding"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-008"
+    title: "Implement `adr build <agent>` command"
+    description: >
+      Implement the `build` subcommand in `cli/adr`. When called with a known
+      agent name, it runs `docker build -t coding-agent/<agent>:<tag>
+      ~/.local/share/adr/agents/<agent>/`, streaming Docker output to the
+      terminal. Supports `--tag TAG` (non-empty) and `--no-cache` flags.
+      When called with no agent argument, it lists known agents and prompts
+      `Build all agents? [y/N]`; on confirmation it builds each sequentially,
+      a failure in one does not abort the rest, and a final summary is printed.
+      An unknown agent name exits with code 1 and an error naming the supported
+      agents. If the Docker daemon is unreachable, surface Docker's error
+      and add "Is the Docker daemon running?". Default tag is `latest` (or
+      `ADR_TAG` from config).
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-3-adr-build-agent"
+      - "specification/features/adr-cli/tests.md#test-3-adr-build"
+    priority: 8
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr build pi` builds `coding-agent/pi:latest` and exits 0"
+      - "`adr build pi --tag 1.0.0` builds `coding-agent/pi:1.0.0`"
+      - "`adr build pi --no-cache` passes `--no-cache` to docker build"
+      - "`adr build fakeagent` exits 1 with an error listing supported agents"
+      - "`adr build` (no argument) prompts and builds all agents on confirmation; rejection exits 0 without building"
+      - "`adr build pi --tag ''` exits 1 with error `--tag requires a non-empty value`"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-009"
+    title: "Implement `adr status` command"
+    description: >
+      Implement the `status` subcommand in `cli/adr`. It queries `docker
+      image ls` for each of the four known agents and prints a formatted
+      table showing Agent, Image, Tag, Size, and Built (relative time) for
+      each. Rows for absent images show `(not built)` with dashes. When no
+      agents have been built, append a hint: "Run 'adr build <agent>' to
+      build an image." If the Docker daemon is unreachable, print "Cannot
+      reach Docker daemon. Is Docker running?" and exit 1.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-6-adr-status"
+      - "specification/features/adr-cli/tests.md#test-6-adr-status"
+    priority: 9
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr status` prints a table with exactly one row per known agent (pi, opencode, claude, codex)"
+      - "Rows for built images show a non-zero size and a relative time value"
+      - "Rows for absent images show `(not built)` with dashes for size and built columns"
+      - "When no images are built, a hint to run `adr build <agent>` is printed"
+      - "When Docker daemon is unreachable, exit code is 1 and the error message includes `Is Docker running?`"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-010"
+    title: "Implement `adr run [agent]` command"
+    description: >
+      Implement the `run` subcommand in `cli/adr`. It mirrors all options of
+      `run.sh`: --workspace (default $PWD), --config, --config-file (claude
+      only), --prompt (implies --headless), --headless, --shell, --tag,
+      --model. When no agent argument is given, read ADR_AGENT from config
+      (discovered via task-005); if still unset, error. If the required image
+      is absent, prompt to build it inline; on rejection print the manual
+      build command and exit 1. Apply the config precedence from task-005 for
+      model and tag defaults. Validate all error cases from Behavior 4:
+      workspace not found, config dir not found, --headless without --prompt,
+      --shell with --headless/--prompt, --config-file with non-claude agent.
+      Workspace paths are normalised to absolute. For pi agent, split
+      provider/model on the first `/` into separate env vars.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-4-adr-run-agent"
+      - "specification/features/adr-cli/tests.md#test-4-adr-run"
+      - "specification/features/adr-cli/tests.md#test-13-precedence--config-layering"
+    priority: 10
+    dependsOn:
+      - "task-002"
+      - "task-005"
+      - "task-008"
+    successCriteria:
+      - "`adr run pi` starts a pi container with workspace set to `$PWD`"
+      - "`adr run pi --prompt 'Print HELLO_TEST'` runs headless and output contains HELLO_TEST"
+      - "`adr run pi --headless` (without --prompt) exits 1 with `--headless requires --prompt`"
+      - "`adr run pi --shell --prompt 'x'` exits 1 with mutual-exclusion error"
+      - "`adr run pi --workspace /nonexistent` exits 1 with workspace-not-found error"
+      - "`adr run` in a directory with `.adr` containing `ADR_AGENT=pi` runs pi without an explicit agent argument"
+      - "`adr run` with no agent and no `.adr` file exits 1 with the appropriate error"
+      - "For pi, `--model anthropic/claude-opus-4` sets `AGENT_PROVIDER=anthropic` and `AGENT_MODEL=claude-opus-4` in the container"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-011"
+    title: "Implement `adr update [agent]` command"
+    description: >
+      Implement the `update` subcommand in `cli/adr`. With a known agent
+      argument it is equivalent to `adr build --no-cache <agent>`. With no
+      argument it queries `docker image ls` to discover which agent images are
+      already present and rebuilds each with `--no-cache`; agents whose image
+      has never been built are skipped with a printed note. Error handling
+      follows `adr build` (unknown agent, daemon not running, build failure).
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-5-adr-update-agent"
+      - "specification/features/adr-cli/tests.md#test-5-adr-update"
+    priority: 11
+    dependsOn:
+      - "task-008"
+    successCriteria:
+      - "`adr update pi` rebuilds `coding-agent/pi:latest` with `--no-cache` and exits 0"
+      - "The rebuilt image has a newer creation timestamp than the original"
+      - "`adr update` (no argument) only rebuilds images that are already present locally"
+      - "Each unbuilt agent is reported as skipped with a note (not an error)"
+      - "Error handling for unknown agent and Docker daemon failure matches `adr build`"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-012"
+    title: "Implement `adr fix-owner [DIR]` command"
+    description: >
+      Implement the `fix-owner` subcommand in `cli/adr`. It runs
+      `sudo chown -R $(id -u):$(id -g) <DIR>` where `<DIR>` defaults to
+      `$PWD`. On success it prints "Changed ownership of all files in <DIR>
+      to <user>:<group>." If the target directory does not exist, print a
+      clear error and exit 1. If sudo fails or is unavailable, surface the
+      system error message. This wraps the existing `fix_owner.sh` logic.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-7-adr-fix-owner-dir"
+      - "specification/features/adr-cli/tests.md#test-7-adr-fix-owner"
+    priority: 12
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr fix-owner` (no argument) changes ownership of all files in `$PWD` to the current user"
+      - "`adr fix-owner /some/dir` operates on the given directory"
+      - "A confirmation message naming the directory and user:group is printed on success"
+      - "`adr fix-owner /nonexistent` exits 1 with an error referencing the missing directory"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-013"
+    title: "Implement `adr config` command"
+    description: >
+      Implement the `config` subcommand in `cli/adr` with three modes.
+      `adr config` (no sub-subcommand) prints the effective merged
+      configuration showing each supported key, its resolved value, and the
+      source (default / global config / project .adr). `adr config set
+      KEY=VALUE` writes or updates the key in `~/.config/adr/config`, creating
+      the file and directory if needed, replacing the existing line in-place if
+      the key exists. `adr config set --project KEY=VALUE` writes to the `.adr`
+      file in `$PWD`. Error cases: missing argument exits 1 with usage error;
+      value without `=` exits 1 with `Expected KEY=VALUE format`.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-10-adr-config"
+      - "specification/features/adr-cli/tests.md#test-10-adr-config"
+    priority: 13
+    dependsOn:
+      - "task-005"
+    successCriteria:
+      - "`adr config` prints all supported keys with their effective value and source annotation"
+      - "`adr config set ADR_TAG=1.0.0` writes the key to `~/.config/adr/config`, creating the file if absent"
+      - "`adr config set ADR_TAG=2.0.0` replaces an existing `ADR_TAG` line without duplicating it"
+      - "`adr config set --project ADR_AGENT=pi` writes to `.adr` in `$PWD`"
+      - "`adr config set` with no argument exits 1 with a usage error"
+      - "`adr config set ADR_TAG` (no `=`) exits 1 with `Expected KEY=VALUE format`"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-014"
+    title: "Implement shell completions and `adr completions` command"
+    description: >
+      Create completion scripts for bash (`completions/adr.bash`), zsh
+      (`completions/adr.zsh`), and fish (`completions/adr.fish`) inside the
+      repository. Implement the `completions` subcommand in `cli/adr`:
+      `adr completions <shell>` prints the corresponding script to stdout;
+      `adr completions install` auto-detects `$SHELL` and installs the script
+      to the appropriate location (bash: `~/.bash_completion.d/adr`, zsh:
+      `~/.zsh/completions/_adr`, fish: `~/.config/fish/completions/adr.fish`),
+      creating directories as needed and printing the installed path plus any
+      rc-file source hint. Completions must cover: top-level commands, agent
+      names after `build`/`run`/`update`, all flags for each command, shell
+      names after `completions`, and config key stubs after `config set`.
+      Unknown shell name exits 1.
+    source:
+      - "specification/features/adr-cli/behaviors.md#behavior-11-shell-completions"
+      - "specification/features/adr-cli/tests.md#test-11-shell-completions"
+    priority: 14
+    dependsOn:
+      - "task-002"
+    successCriteria:
+      - "`adr completions bash` outputs non-empty content containing a `complete` directive"
+      - "`adr completions zsh` outputs non-empty valid zsh completion syntax"
+      - "`adr completions fish` outputs non-empty content containing `complete -c adr` directives"
+      - "`adr completions install` installs the correct file for the detected shell and prints the path"
+      - "`adr completions powershell` exits 1 with an error naming the supported shells"
+      - "Tab-completing `adr <TAB>` offers all top-level commands; `adr run <TAB>` offers agent names"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
