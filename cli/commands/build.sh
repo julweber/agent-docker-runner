@@ -44,7 +44,11 @@ cmd_build_all() {
 
             echo ""
             echo "Build summary: $success_count succeeded, $fail_count failed."
-            [[ $fail_count -gt 0 ]] && return 1
+            if [[ $fail_count -gt 0 ]]; then
+                return 1
+            else
+                return 0
+            fi
             ;;
         *)
             echo "Cancelled."
