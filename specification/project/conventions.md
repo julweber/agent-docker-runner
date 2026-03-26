@@ -10,7 +10,7 @@ This document defines coding style, naming conventions, and architectural patter
 
 All files in the project use **snake_case** naming:
 
-- Shell scripts: `build.sh`, `run.sh`, `fix_owner.sh`
+- Shell scripts: `cli/commands/build.sh`, `cli/commands/run.sh`, `cli/commands/fix-owner.sh`
 - Configuration files: `settings.json`, `models.json`, `opencode.json`
 - Directory names: `config-examples/`, `specification/project/`
 - Future code files: `agent_manager.sh`, `workflow_executor.py` (if applicable)

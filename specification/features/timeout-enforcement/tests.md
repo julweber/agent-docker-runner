@@ -10,7 +10,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 1.1: Headless Mode Applies Default
 **Procedure**:
-1. Run `./run.sh --prompt "Say hello" pi` without `--timeout` flag
+1. Run `adr run --prompt "Say hello" pi` without `--timeout` flag
 2. Monitor container execution time
 3. Verify task completes or times out within 30 minutes
 
@@ -21,7 +21,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 1.2: Session Mode Ignores Timeout Flag
 **Procedure**:
-1. Start interactive session: `./run.sh pi` (no --prompt)
+1. Start interactive session: `adr run pi` (no --prompt)
 2. Specify `--timeout 5m` flag alongside session mode
 3. Observe warning message and execution behavior
 
@@ -38,7 +38,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.1: Seconds Format (with unit)
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 30s`
+1. Run `adr run --prompt "Test" pi --timeout 30s`
 2. Verify container timeout is set to 30 seconds
 
 **Expected Outcome**: 
@@ -47,7 +47,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.2: Seconds Format (without unit)
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 60`
+1. Run `adr run --prompt "Test" pi --timeout 60`
 2. Verify container timeout is set to 60 seconds
 
 **Expected Outcome**: 
@@ -56,7 +56,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.3: Minutes Format
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 5m`
+1. Run `adr run --prompt "Test" pi --timeout 5m`
 2. Verify container timeout is set to 5 minutes
 
 **Expected Outcome**: 
@@ -65,7 +65,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.4: Hours Format
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 1h`
+1. Run `adr run --prompt "Test" pi --timeout 1h`
 2. Verify container timeout is set to 1 hour
 
 **Expected Outcome**: 
@@ -74,7 +74,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.5: Days Format
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 1d`
+1. Run `adr run --prompt "Test" pi --timeout 1d`
 2. Verify container timeout is set to 1 day
 
 **Expected Outcome**: 
@@ -83,7 +83,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.6: Invalid Unit Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 1x` with invalid unit
+1. Run `adr run --prompt "Test" pi --timeout 1x` with invalid unit
 
 **Expected Outcome**: 
 - Error message: "Invalid timeout unit. Use s, m, h, or d"
@@ -92,7 +92,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.7: Malformed Value Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout abc` with non-numeric value
+1. Run `adr run --prompt "Test" pi --timeout abc` with non-numeric value
 
 **Expected Outcome**: 
 - Error message indicating malformed timeout value
@@ -101,7 +101,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.8: Decimal Value Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 1.5h` with decimal value
+1. Run `adr run --prompt "Test" pi --timeout 1.5h` with decimal value
 
 **Expected Outcome**: 
 - Error message: "Decimal timeout values are not supported"
@@ -110,7 +110,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 2.9: Mixed Case Acceptance
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 1H` with uppercase unit
+1. Run `adr run --prompt "Test" pi --timeout 1H` with uppercase unit
 
 **Expected Outcome**: 
 - Timeout correctly parsed as 3600 seconds
@@ -125,7 +125,7 @@ This document defines test cases for timeout enforcement functionality. All test
 ### Test 3.1: Container Terminates at Timeout
 **Procedure**:
 1. Create a task that would run longer than specified timeout (e.g., agent with long prompt or simulated delay)
-2. Run `./run.sh --prompt "Long running task" pi --timeout 2m`
+2. Run `adr run --prompt "Long running task" pi --timeout 2m`
 3. Monitor execution time and termination behavior
 
 **Expected Outcome**: 
@@ -167,7 +167,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 4.1: Very Short Timeout Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 3s` with timeout below minimum threshold
+1. Run `adr run --prompt "Test" pi --timeout 3s` with timeout below minimum threshold
 
 **Expected Outcome**: 
 - Validation error message suggesting to increase timeout value
@@ -176,7 +176,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 4.2: Zero Timeout Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 0` or `--timeout 0s`
+1. Run `adr run --prompt "Test" pi --timeout 0` or `--timeout 0s`
 
 **Expected Outcome**: 
 - Error message indicating zero timeout is invalid
@@ -185,7 +185,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 4.3: Negative Timeout Rejection
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout -5m` with negative value
+1. Run `adr run --prompt "Test" pi --timeout -5m` with negative value
 
 **Expected Outcome**: 
 - Error message indicating negative timeout is invalid
@@ -194,7 +194,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 4.4: Very Long Timeout Acceptance
 **Procedure**:
-1. Run `./run.sh --prompt "Test" pi --timeout 7d` with extremely long timeout
+1. Run `adr run --prompt "Test" pi --timeout 7d` with extremely long timeout
 
 **Expected Outcome**: 
 - No warning message displayed
@@ -220,7 +220,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ### Test 5.1: Timeout Flag Ignored in Session Mode
 **Procedure**:
-1. Start interactive session with timeout flag: `./run.sh --timeout 5m` (no --prompt)
+1. Start interactive session with timeout flag: `adr run --timeout 5m` (no --prompt)
 2. Observe warning message and session behavior
 
 **Expected Outcome**: 
@@ -245,22 +245,22 @@ This document defines test cases for timeout enforcement functionality. All test
 ### Quick Verification: All Timeout Formats
 ```bash
 # Valid formats - should all succeed
-./run.sh --prompt "Test" pi --timeout 30s && echo "✓ 30s passed"
-./run.sh --prompt "Test" pi --timeout 60 && echo "✓ 60 (implicit s) passed"
-./run.sh --prompt "Test" pi --timeout 5m && echo "✓ 5m passed"
-./run.sh --prompt "Test" pi --timeout 1h && echo "✓ 1h passed"
-./run.sh --prompt "Test" pi --timeout 1d && echo "✓ 1d passed"
+adr run --prompt "Test" pi --timeout 30s && echo "✓ 30s passed"
+adr run --prompt "Test" pi --timeout 60 && echo "✓ 60 (implicit s) passed"
+adr run --prompt "Test" pi --timeout 5m && echo "✓ 5m passed"
+adr run --prompt "Test" pi --timeout 1h && echo "✓ 1h passed"
+adr run --prompt "Test" pi --timeout 1d && echo "✓ 1d passed"
 
 # Invalid formats - should all fail with exit code 2
-./run.sh --prompt "Test" pi --timeout 1x; [ $? -eq 2 ] && echo "✓ invalid unit rejected"
-./run.sh --prompt "Test" pi --timeout abc; [ $? -eq 2 ] && echo "✓ malformed value rejected"
-./run.sh --prompt "Test" pi --timeout 1.5h; [ $? -eq 2 ] && echo "✓ decimal rejected"
+adr run --prompt "Test" pi --timeout 1x; [ $? -eq 2 ] && echo "✓ invalid unit rejected"
+adr run --prompt "Test" pi --timeout abc; [ $? -eq 2 ] && echo "✓ malformed value rejected"
+adr run --prompt "Test" pi --timeout 1.5h; [ $? -eq 2 ] && echo "✓ decimal rejected"
 ```
 
 ### Integration Test: Timeout Enforcement
 ```bash
 # Create a task that exceeds timeout (e.g., agent with very long prompt)
-./run.sh --prompt "$(yes 'Continue working' | head -n 10000)" pi --timeout 2m
+adr run --prompt "$(yes 'Continue working' | head -n 10000)" pi --timeout 2m
 echo "Exit code: $?"
 # Expected: non-zero exit code indicating timeout
 ```

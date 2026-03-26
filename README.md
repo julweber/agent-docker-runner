@@ -15,7 +15,7 @@ commands from any directory.
 This repository contains two layers:
 
 1. **The product**: Agent Docker Runner itself
-   The Docker-based runner in `run.sh`, `build.sh`, and `agents/`.
+   The Docker-based runner accessible via the `adr` CLI (`adr run`, `adr build`) with agent definitions in `agents/`.
 2. **The development workflow used to build the product**
    A spec-driven framework in `bin/spec`, `scripts/`, `skills/`, and
    `specification/`.
@@ -74,7 +74,7 @@ less rework.
 
 > For contributors using the spec workflow, additional tools such as `git` and
 > `yq` are used by some helper scripts. They are not required just to run an
-> agent container with `run.sh`.
+> agent container with `adr run`.
 
 ---
 
@@ -137,12 +137,12 @@ Uninstall does not remove:
 
 ## Supported Agents
 
-| Agent | Description | Config dir |
-|---|---|---|
-| `pi` | [pi coding agent](https://github.com/mariozechner/pi-coding-agent) | `~/.pi/` |
-| `opencode` | [opencode](https://opencode.ai) | `~/.config/opencode/` |
-| `claude` | [Claude Code](https://claude.ai/code) by Anthropic | `~/.claude/` |
-| `codex` | OpenAI Codex CLI | `~/.codex/` |
+| Agent      | Description                                                        | Config dir            |
+| ------------| --------------------------------------------------------------------| -----------------------|
+| `pi`       | [pi coding agent](https://github.com/mariozechner/pi-coding-agent) | `~/.pi/`              |
+| `opencode` | [opencode](https://opencode.ai)                                    | `~/.config/opencode/` |
+| `claude`   | [Claude Code](https://claude.ai/code) by Anthropic                 | `~/.claude/`          |
+| `codex`    | OpenAI Codex CLI                                                   | `~/.codex/`           |
 
 ---
 
@@ -279,7 +279,7 @@ Claude Code uses **two** config files:
 ~/.claude/
   settings.json            # Claude Code settings — use the "env" block for your API key
 
-~/.claude.json             # Pre-approves the API key (run.sh reads this automatically)
+~/.claude.json             # Pre-approves the API key (`adr run` reads this automatically)
 ```
 
 **`settings.json`** minimal example (see `config-examples/claude/settings.json.example`):
@@ -464,16 +464,19 @@ Options:
 ### `adr fix-owner`
 
 ```
-Usage: adr fix-owner [directory]
-
-Changes ownership of all files in a directory recursively to the current user.
+Usage: adr fix-owner [OPTIONS] [<directory>]
 
 Arguments:
   directory               Target directory (defaults to current directory)
 
-This script is useful on Linux when the container runs as UID 1000 and creates
+Options:
+  -h, --help              Show this help text.
+
+Changes ownership of all files in a directory recursively to the current user.
+
+This command is useful on Linux when the container runs as UID 1000 and creates
 files that are owned by that UID on the host. If your host user has a different
-UID, use this script to fix ownership.
+UID, use this command to fix ownership.
 ```
 
 ---
@@ -490,7 +493,7 @@ workspace directory group/world-writable:
 chmod o+w ~/projects/myapp
 ```
 
-Alternatively, use the `fix_owner.sh` script to change ownership of all files in a directory
+Alternatively, use the `adr fix-owner` command to change ownership of all files in a directory
 recursively to your current user:
 
 ```bash
@@ -587,7 +590,7 @@ entire section and just use `adr`.
 2. Create `agents/<name>/entrypoint.sh` — translate `AGENT_HEADLESS`,
    `AGENT_PROMPT`, `AGENT_SHELL`, `AGENT_PROVIDER`, `AGENT_MODEL` env vars into
    the agent's own CLI flags.
-3. Add the agent name to `KNOWN_AGENTS` in the ADR CLI runtime under `cli/`.
+3. Add the agent name to `KNOWN_AGENTS` in the ADR CLI runtime under `cli/runtime.sh`.
 4. Document the config layout in `README.md` and add an example under
    `config-examples/<name>/`.
 
@@ -620,9 +623,7 @@ agent-docker-runner/
 │   ├── opencode/
 │   └── pi/
 ├── docs/                 # Design notes and internal review docs
-├── build.sh              # Script to build agent images
-├── run.sh                # Script to run agents in containers
-├── fix_owner.sh          # Script to fix file ownership on Linux
+├── cli/                  # ADR CLI runtime (adr build, adr run, adr fix-owner, etc.)
 ├── scripts/              # Contributor workflow scripts and helpers
 ├── skills/               # Skills used by agents contributing to this repo
 └── specification/        # Product specs used during development

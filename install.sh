@@ -51,7 +51,7 @@ is_ci_or_no_tty() {
 # ==============================================================================
 
 validate_source_files() {
-    # Check that required source files exist in the repository
+    # Check that required CLI source files exist in the repository.
     local missing=()
     
     if [[ ! -f "${SCRIPT_DIR}/cli/adr" ]]; then
@@ -197,7 +197,7 @@ copy_completions() {
 }
 
 write_version_file() {
-    local version="0.3.0"
+    local version="1.0.0"
     
     # Try to read VERSION from repository if it exists
     if [[ -f "${SCRIPT_DIR}/VERSION" ]]; then

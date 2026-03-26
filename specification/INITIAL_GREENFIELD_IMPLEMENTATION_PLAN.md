@@ -13,8 +13,18 @@ extensions, skills, …) is supplied via a dedicated config directory.
 
 ```
 agent-docker-runner/
-  run.sh                        # Main entry point — the script users call
-  build.sh                      # Convenience script for building agent images
+  cli/                        # ADR CLI installation (adr executable + commands/)
+    adr                       # Main CLI entry point
+    main.sh                   # CLI dispatcher
+    commands/
+      build.sh                # Build agent images
+      run.sh                  # Run agents in containers
+      update.sh               # Rebuild agents with latest versions
+      status.sh               # Show built agent images
+      fix-owner.sh            # Fix workspace ownership
+      config.sh               # Manage configuration
+      completions.sh          # Shell completion scripts
+    lib/                      # Shared library functions
   agents/
     pi/
       Dockerfile                # Builds the coding-agent/pi image
@@ -32,7 +42,7 @@ agent-docker-runner/
 This directory is **documentation and a starting point only**. It is not used
 at runtime. Users should copy it (or individual files from it) to a location of
 their choice, rename the files (dropping the `.example` suffix), fill in real
-values, and then point `run.sh` at that directory via `-c / --config`.
+values, and then point `adr run` at that directory via `-c / --config`.
 
 The config directory is mounted read-only directly into the container at the
 agent's config path (e.g. `~/.pi/` → `/home/agent/.pi` for pi). API keys and
@@ -44,7 +54,7 @@ Example workflow:
 ```bash
 cp -r config-examples/pi/ ~/.agent-pi-config
 # Edit files inside ~/.agent-pi-config/ (add config options to settings.json, etc.)
-./run.sh -c ~/.agent-pi-config pi
+adr run -c ~/.agent-pi-config pi
 ```
 
 ### `config-examples/pi/agent/settings.json.example` contents
@@ -138,7 +148,7 @@ provider setups — local Ollama , LM Studio and OpenRouter):
 
 
 **`host.docker.internal` on Linux**: Docker Desktop (macOS/Windows) provides
-this hostname automatically. On Linux it is not set by default. `run.sh` must
+this hostname automatically. On Linux it is not set by default. `adr run` must
 add `--add-host=host.docker.internal:host-gateway` to the `docker run` command
 unconditionally — it is a no-op on macOS/Windows and makes local LLM providers
 (Ollama, LM Studio) reachable on Linux without any extra user configuration.
@@ -147,13 +157,13 @@ unconditionally — it is a no-op on macOS/Windows and makes local LLM providers
 
 ---
 
-## `build.sh` — CLI Interface
+## `adr build` — CLI Interface
 
-Use `build.sh` to build agent images (see [build.sh](#buildsh--cli-interface) section).
+Use `adr build` to build agent images (see [`adr build`](#adr-build--cli-interface) section).
 
 ### Usage
 ```
-Usage: ./build.sh [OPTIONS] <agent>
+Usage: adr build [OPTIONS] <agent>
 
 Arguments:
   agent                   Agent to build. Currently supported: pi
@@ -168,18 +178,18 @@ Options:
 ### Examples
 ```bash
 # Build with default tag (latest)
-./build.sh pi
+adr build pi
 
 # Build with a specific version tag
-./build.sh --tag 1.2.3 pi
+adr build --tag 1.2.3 pi
 
 # Force a clean rebuild (no layer cache)
-./build.sh --no-cache pi
+adr build --no-cache pi
 ```
 
-### `build.sh` — Script Conventions
+### `adr build` — Script Conventions
 
-All bash scripts (`build.sh`, `run.sh`, `agents/pi/entrypoint.sh`) must follow
+All bash scripts (`cli/commands/build.sh`, `cli/commands/run.sh`, `agents/pi/entrypoint.sh`) must follow
 these conventions:
 
 ```bash
@@ -194,13 +204,12 @@ set -euo pipefail
 - Print error messages to stderr: `echo "Error: ..." >&2`.
 - Exit with a non-zero code on validation failures.
 
-### `build.sh` — Internal Logic
+### `adr build` — Internal Logic
 
 ```
-0. cd to the directory containing build.sh (POSIX-compatible):
-   cd "$(cd "$(dirname "$0")" && pwd)"
-   (ensures relative paths like agents/<agent>/ work regardless of where
-   the script is invoked from)
+0. The CLI resolves the agent path to ~/.local/share/adr/agents/<agent>/:
+   ADR_AGENT_PATH="${ADR_DATA_DIR}/agents/${AGENT}/"
+   (where ADR_DATA_DIR defaults to ~/.local/share/adr)
 
 1. Parse arguments (while loop over $@).
    Collect: AGENT, TAG (default: "latest"), NO_CACHE.
@@ -213,7 +222,7 @@ set -euo pipefail
      docker build
        [ --no-cache ]                 (if --no-cache was given)
        -t coding-agent/<agent>:<tag>
-       agents/<agent>/
+       "${ADR_AGENT_PATH}"
 
 4. Execute the command.
    Exit with docker's exit code.
@@ -221,11 +230,11 @@ set -euo pipefail
 
 ---
 
-## `run.sh` — CLI Interface
+## `adr run` — CLI Interface
 
 ### Usage
 ```
-Usage: ./run.sh [OPTIONS] <agent>
+Usage: adr run [OPTIONS] <agent>
 
 Arguments:
   agent                   Agent to run. Currently supported: pi
@@ -236,7 +245,7 @@ Options:
   -c, --config DIR        (Required) Path to config directory for the agent.
                           Mirrors ~/.<agent>/ — mounted read-only to
                           /home/agent/.<agent> inside the container.
-                          Must exist on the host; run.sh exits with an error otherwise.
+                          Must exist on the host; `adr run` exits with an error otherwise.
       --prompt TEXT        Prompt to pass to the agent. Must be used together
                           with --headless. The agent processes the prompt and exits.
       --headless          Run in headless / non-interactive mode (no TUI).
@@ -250,22 +259,22 @@ Options:
 ### Examples
 ```bash
 # Interactive TUI session with explicit workspace and config (config is required)
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config pi
 
 # Headless: give the agent a task, agent exits when done
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config --headless --prompt "Fix all TypeScript errors in src/" pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config --headless --prompt "Fix all TypeScript errors in src/" pi
 
 # Note: --prompt has no short form. Pi itself uses -p/--print internally;
-# to avoid confusion run.sh does not expose a -p short flag for --prompt.
+# to avoid confusion `adr run` does not expose a -p short flag for --prompt.
 
 # With config directory (API keys + pi config)
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config pi
 
 # Use a pinned image version
-./run.sh -w ~/projects/myapp --tag 1.2.3 pi
+adr run -w ~/projects/myapp --tag 1.2.3 pi
 
 # Debug: open a shell inside the container
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config --shell pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config --shell pi
 ```
 
 ---
@@ -297,9 +306,9 @@ inside the container — the same pattern.
 
 ### Build command
 ```bash
-# Via build.sh (recommended)
-./build.sh pi
-./build.sh --tag 1.2.3 pi
+# Via adr build (recommended)
+adr build pi
+adr build --tag 1.2.3 pi
 
 # Manually
 docker build -t coding-agent/pi:latest agents/pi/
@@ -345,13 +354,13 @@ ENV HOME=/home/agent
 WORKDIR /workspace
 
 ENTRYPOINT ["/entrypoint.sh"]
-# No CMD instruction — intentional. run.sh communicates all intent to
+# No CMD instruction — intentional. `adr run` communicates all intent to
 # entrypoint.sh via environment variables (AGENT_SHELL, AGENT_HEADLESS,
 # AGENT_PROMPT), so no default arguments are needed or expected.
 ```
 
 #### Why a fixed UID 1001?
-At runtime, `run.sh` always passes `--user 1001:1001` (the pre-created `agent`
+At runtime, `adr run` always passes `--user 1001:1001` (the pre-created `agent`
 user). This means:
 - The user **exists in /etc/passwd** → tools that require a real user (e.g.
   shells, some npm scripts) don't complain.
@@ -368,12 +377,12 @@ user). This means:
 ## `agents/pi/entrypoint.sh` — Logic
 
 ```
-1. If AGENT_SHELL=1 (set by run.sh when --shell is given):
+1. If AGENT_SHELL=1 (set by `adr run` when --shell is given):
      exec bash
      (stops here)
 
 2. Build the pi argument list (bash array, e.g. PI_ARGS=()):
-   a. If AGENT_HEADLESS=1 (set by run.sh when --headless --prompt is given):
+   a. If AGENT_HEADLESS=1 (set by `adr run` when --headless --prompt is given):
         add --print to PI_ARGS
         append "$AGENT_PROMPT" as the final element (double-quoted to preserve
         spaces and special characters)
@@ -392,26 +401,25 @@ user). This means:
    the array is empty and works correctly when it is non-empty.
 ```
 
-`run.sh` communicates intent to the entrypoint via environment variables
+`adr run` communicates intent to the entrypoint via environment variables
 (`AGENT_SHELL`, `AGENT_HEADLESS`, `AGENT_PROMPT`) rather than command-line
 args, to keep the entrypoint simple and avoid argument-parsing conflicts with
 pi's own flags.
 
 ---
 
-## `run.sh` — Internal Logic (step by step)
+## `adr run` — Internal Logic (step by step)
 
 ```
-0a. Capture the invocation directory (before changing into the script's directory):
+0a. Capture the invocation directory (before changing into the CLI's working context):
     INVOKE_DIR=$PWD
-    This must happen as the very first line — before any `cd` — so that the
+    This must happen as the very first line — before any path resolution — so that the
     default WORKSPACE resolves to the directory the user was in when they
-    called run.sh, not the script's own directory.
+    called `adr run`, not the CLI's own installation directory.
 
-0b. cd to the script's own directory (POSIX-compatible):
-    cd "$(cd "$(dirname "$0")" && pwd)"
-    Ensures relative paths like agents/<agent>/ work regardless of where
-    the script is invoked from.
+0b. Resolve ADR installation paths:
+    ADR_CLI_DIR="${HOME}/.local/share/adr/cli" (or from environment)
+    Ensures commands like build.sh and run.sh are loaded from the correct location.
 
 1. Parse arguments (while loop over $@).
    Collect: AGENT, WORKSPACE (default: $INVOKE_DIR — captured in step 0a),
@@ -505,14 +513,14 @@ used; all configuration flows through the mounted config directory.
    at UID 1001 (GID 1001), set WORKDIR to `/workspace`, set ENTRYPOINT.
 2. Create `agents/<name>/entrypoint.sh` — translate `AGENT_HEADLESS`,
    `AGENT_PROMPT`, `AGENT_SHELL` env vars into the agent's own CLI flags.
-3. Add the agent name to the `KNOWN_AGENTS` list in **both** `build.sh` and
-   `run.sh` (one-line change in each).
+3. Add the agent name to the `KNOWN_AGENTS` list in **both** `adr build` and
+   `adr run` (one-line change in each).
 4. Document the config directory layout in `README.md` and add an example to
    `config-examples/<name>/` (mirroring `~/.<name>/` on the host).
    The config directory is passed directly as `-c <dir>` and mounted to
-   `/home/agent/.<name>` — no structural change to `run.sh` is needed.
+   `/home/agent/.<name>` — no structural change to `adr run` is needed.
 
-`run.sh` itself needs **no structural changes** — it is agent-agnostic by
+`adr run` itself needs **no structural changes** — it is agent-agnostic by
 design. The image name (`coding-agent/<name>:<tag>`) and config subdir
 (`<config-dir>/<name>/` → `/home/agent/.<name>`) are derived from the agent
 name automatically.
@@ -547,14 +555,14 @@ Show the absolute minimum to get a working session.
 # 1. Clone and build the image
 git clone <repo-url> agent-docker-runner
 cd agent-docker-runner
-./build.sh pi
+adr build pi
 
 # 2. Create a config directory from the example (mirrors ~/.pi/)
 cp -r config-examples/pi/ ~/.agent-pi-config
 # Edit ~/.agent-pi-config/agent/settings.json — add your API key(s)
 
 # 3. Launch an interactive session in the current directory
-./run.sh -c ~/.agent-pi-config pi
+adr run -c ~/.agent-pi-config pi
 ```
 
 Add a one-line note: "Your current directory is mounted as /workspace — the
@@ -563,7 +571,7 @@ agent can read and write files there."
 ---
 
 ### 4. Config directory
-A config directory is **required** — `run.sh` will error if `-c` is not
+A config directory is **required** — `adr run` will error if `-c` is not
 provided or if the directory does not exist. It mirrors `~/.<agent>/` on the
 host and is mounted read-only to `/home/agent/.<agent>` inside the container.
 
@@ -589,17 +597,17 @@ Concrete, runnable examples covering the main use cases:
 
 ```bash
 # Interactive TUI session with a specific workspace
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config pi
 
 # Headless: give the agent a one-shot task and exit
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config \
+adr run -w ~/projects/myapp -c ~/.agent-pi-config \
   --headless --prompt "Write tests for all untested functions in src/" pi
 
 # Use a pinned image version
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config --tag 1.2.3 pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config --tag 1.2.3 pi
 
 # Debug: drop into a shell inside the container
-./run.sh -w ~/projects/myapp -c ~/.agent-pi-config --shell pi
+adr run -w ~/projects/myapp -c ~/.agent-pi-config --shell pi
 ```
 
 ---
@@ -607,13 +615,13 @@ Concrete, runnable examples covering the main use cases:
 ### 6. Building images
 ```bash
 # Build latest
-./build.sh pi
+adr build pi
 
 # Build a specific version tag
-./build.sh --tag 1.2.3 pi
+adr build --tag 1.2.3 pi
 
 # Force a clean rebuild
-./build.sh --no-cache pi
+adr build --no-cache pi
 ```
 
 Note: the image is named `coding-agent/pi:<tag>` and stays local — nothing is
@@ -631,7 +639,7 @@ open `/model` — no container restart needed.
 ---
 
 ### 8. Full CLI reference
-Reproduce the Usage blocks verbatim for both `run.sh` and `build.sh`.
+Reproduce the Usage blocks verbatim for both `adr run` and `adr build`.
 
 ---
 

@@ -5,7 +5,7 @@ command-line interface for Agent Docker Runner.
 
 ## Overview
 
-`adr` replaces the need to reference `./build.sh` and `./run.sh` from a cloned
+`adr` provides a globally-installed CLI that replaces direct invocation of
 repository. It is a single globally-installed executable that a developer can
 call from any directory, any project, any terminal session — without knowing or
 caring where the repository lives on disk.
@@ -93,8 +93,7 @@ placed on disk, without touching user configuration or project files.
 
 ## Behavior 3: `adr build <agent>`
 
-**Description**: Builds the Docker image for the named agent. Delegates to the
-same `docker build` logic as `build.sh`, using the Dockerfiles bundled into
+**Description**: Builds the Docker image for the named agent. Delegates to the `docker build` logic, using the Dockerfiles bundled into
 `~/.local/share/adr/agents/`.
 
 ### Happy Path
@@ -140,19 +139,19 @@ same `docker build` logic as `build.sh`, using the Dockerfiles bundled into
 ## Behavior 4: `adr run [agent]`
 
 **Description**: Runs the named agent in a Docker container. Mirrors all
-options of `run.sh`. The workspace defaults to `$PWD`.
+options of the legacy `run.sh`. The workspace defaults to `$PWD`.
 
 ### Happy Path
 
 - User runs `adr run pi` from `~/projects/myapp`
 - `adr` resolves workspace to `~/projects/myapp`, config to `~/.pi/`
 - Checks that `coding-agent/pi:latest` exists locally
-- Starts the container with the same `docker run` flags as `run.sh`
+- Starts the container with the same `docker run` flags as the legacy `run.sh`
 - Interactive TUI session begins
 
 ### Options
 
-All options from `run.sh` are supported with identical semantics:
+All options from the legacy `run.sh` are supported with identical semantics:
 
 | Flag | Behaviour |
 |---|---|
@@ -186,7 +185,7 @@ All options from `run.sh` are supported with identical semantics:
 
 - Workspace directory does not exist → `Error: workspace directory does not
   exist: /path/to/dir`
-- Config directory does not exist → same error pattern as `run.sh`, with hint
+- Config directory does not exist → same error pattern as legacy `run.sh`, with hint
   pointing to `config-examples/`
 - `--headless` without `--prompt` → `Error: --headless requires --prompt`
 - `--shell` combined with `--headless` or `--prompt` → `Error: --shell and
@@ -199,7 +198,7 @@ All options from `run.sh` are supported with identical semantics:
 - `--workspace` path with trailing slash → normalised to absolute path without
   trailing slash
 - `--model` with `pi` agent and `provider/model` format → provider and model
-  split on first `/` and forwarded as separate env vars, exactly as `run.sh`
+  split on first `/` and forwarded as separate env vars, exactly as legacy `run.sh`
   does today
 
 ---
@@ -264,7 +263,7 @@ codex      (not built)                   -         -        -
 ## Behavior 7: `adr fix-owner [DIR]`
 
 **Description**: Changes ownership of files in a directory recursively to the
-current user. Wrapper around the existing `fix_owner.sh` logic.
+current user. Wrapper around the existing `fix-owner.sh` logic (now integrated as `adr fix-owner`).
 
 ### Happy Path
 

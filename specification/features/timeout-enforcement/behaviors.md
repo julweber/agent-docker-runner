@@ -13,7 +13,7 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 **Description**: When no explicit timeout is specified, the system applies a sensible default to prevent runaway processes while allowing reasonable execution time.
 
 ### Happy Path
-- User runs `./run.sh --prompt "Task" pi` without `--timeout` flag
+- User runs `adr run --prompt "Task" pi` without `--timeout` flag
 - System applies default timeout of 30 minutes (1800 seconds)
 - Timer starts when container creation begins
 - Task completes successfully within timeout → normal exit with code 0
@@ -41,7 +41,7 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 | Days | `--timeout 1d` | 86400 |
 
 ### Happy Path
-- User specifies `./run.sh --prompt "Task" pi --timeout 1h`
+- User specifies `adr run --prompt "Task" pi --timeout 1h`
 - System parses "1h" as 3600 seconds
 - Timer configured for 3600 second limit
 - Execution proceeds with correct timeout applied

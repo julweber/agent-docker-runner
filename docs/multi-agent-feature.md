@@ -81,9 +81,10 @@ These labels enable:
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                    run_parallel.sh                          │
+│                    run_parallel.sh / `adr` CLI              │
 │                  (Wrapper Script)                           │
 │  - Delegates to scripts/parallel.sh                         │
+│  - All commands accessible via `adr` (adr launch, etc.)     │
 └──────────────────────┬──────────────────────────────────────┘
                        │ exec
                        ▼
@@ -166,7 +167,7 @@ These labels enable:
 ### Command Structure
 
 ```
-./run_parallel.sh <command> [OPTIONS] [ARGUMENTS]
+adr <command> [OPTIONS] [ARGUMENTS]
 ```
 
 ### Commands
@@ -177,7 +178,7 @@ These labels enable:
 
 **Syntax:**
 ```bash
-./run_parallel.sh launch [OPTIONS] <agent> <prompt>
+adr launch [OPTIONS] <agent> <prompt>
 ```
 
 **Options:**
@@ -197,13 +198,13 @@ These labels enable:
 **Examples:**
 ```bash
 # Single container
-./run_parallel.sh launch pi "Analyze this codebase"
+adr launch pi "Analyze this codebase"
 
 # Multiple containers with same config (scaling)
-./run_parallel.sh launch -n 3 opencode "Write tests"
+adr launch -n 3 opencode "Write tests"
 
 # Detached mode for background execution
-./run_parallel.sh launch --detach claude "Document API" &
+adr launch --detach claude "Document API" &
 ```
 
 #### 2. status
@@ -212,7 +213,7 @@ These labels enable:
 
 **Syntax:**
 ```bash
-./run_parallel.sh status [OPTIONS]
+adr status [OPTIONS]
 ```
 
 **Options:**
@@ -243,7 +244,7 @@ agent-runner-def456abc789-0                completed  120s          /home/user/o
 
 **Syntax:**
 ```bash
-./run_parallel.sh logs [OPTIONS] [container-id]
+adr logs [OPTIONS] [container-id]
 ```
 
 **Behavior:**
@@ -257,7 +258,7 @@ agent-runner-def456abc789-0                completed  120s          /home/user/o
 
 **Syntax:**
 ```bash
-./run_parallel.sh stats [OPTIONS] [container-id]
+adr stats [OPTIONS] [container-id]
 ```
 
 **Output:**
@@ -272,7 +273,7 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 
 **Syntax:**
 ```bash
-./run_parallel.sh stop [container-id]
+adr stop [container-id]
 ```
 
 **Behavior:**
@@ -285,7 +286,7 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 
 **Syntax:**
 ```bash
-./run_parallel.sh cleanup
+adr cleanup
 ```
 
 **Behavior:**
@@ -301,7 +302,7 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 ### Launch Flow (Single Container)
 
 ```
-1. User invokes: ./run_parallel.sh launch pi "Analyze code"
+1. User invokes: adr launch pi "Analyze code"
    │
 2. run_parallel.sh delegates to scripts/parallel.sh
    │
@@ -349,7 +350,7 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 ### Status Flow
 
 ```
-1. User invokes: ./run_parallel.sh status [--all] [-f json]
+1. User invokes: adr status [--all] [-f json]
    │
 2. Call init_state() to ensure state file exists
    │
@@ -406,7 +407,7 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 | Condition | Error Message | Exit Code |
 |-----------|---------------|----------|
 | Docker not installed | `Error: Docker not found. Please install Docker.` | 1 |
-| Image not built locally | `Error: Docker image 'coding-agent/pi:latest' not found locally. Build it first with: ./build.sh pi` | 1 |
+| Image not built locally | `Error: Docker image 'coding-agent/<agent>:latest' not found locally. Build it first with: `adr build <agent>`` | 1 |
 | Workspace directory missing | `Error: Workspace directory does not exist: <path>` | 1 |
 | Config directory missing | `Error: Config directory does not exist: <path>` | 1 |
 | Unknown agent type | `Error: Unknown agent '<agent>'. Supported: pi, opencode, claude` | 1 |
@@ -506,8 +507,8 @@ agent-runner-abc123  5.2%      512MiB / 4GiB       1.2kB / 890B
 ### Migration Path
 
 Users can:
-1. Continue using `run.sh` for single-container workflows
-2. Use `run_parallel.sh` for multi-container scenarios
+1. Continue using `run.sh` for single-container workflows (accessible via `adr run`)
+2. Use `adr` CLI for multi-container scenarios (`adr launch`, `adr status`, etc.)
 3. Share the same Docker images and config directories
 4. Optionally add `--parallel` flag to `run.sh` (future enhancement)
 
@@ -588,28 +589,28 @@ docs/
 ## Appendix A: Example Session
 
 ```
-$ ./run_parallel.sh launch -n 2 pi "Analyze this codebase"
+$ adr launch -n 2 pi "Analyze this codebase"
 Task a1b2c3d4e5f6 started with 2 container(s):
   - agent-runner-a1b2c3d4e5f6-0
   - agent-runner-a1b2c3d4e5f6-1
-Use 'parallel.sh status' to view containers
+Use 'adr status' to view containers
 
-$ ./run_parallel.sh status
+$ adr status
 CONTAINER_ID                               STATUS     ELAPSED       WORKSPACE
 ------------                               ------     -------       ---------
 agent-runner-a1b2c3d4e5f6-0                running    15s           /home/user/project
 agent-runner-a1b2c3d4e5f6-1                running    15s           /home/user/project
 
-$ ./run_parallel.sh logs agent-runner-a1b2c3d4e5f6-0
+$ adr logs agent-runner-a1b2c3d4e5f6-0
 [Container output...]
 
-$ ./run_parallel.sh status --all
+$ adr status --all
 CONTAINER_ID                               STATUS     ELAPSED       WORKSPACE
 ------------                               ------     -------       ---------
 agent-runner-a1b2c3d4e5f6-0                completed  120s          /home/user/project
 agent-runner-a1b2c3d4e5f6-1                running    105s          /home/user/project
 
-$ ./run_parallel.sh cleanup
+$ adr cleanup
 Removing: agent-runner-a1b2c3d4e5f6-0
 Cleanup complete. Removed 1 container(s)
 ```

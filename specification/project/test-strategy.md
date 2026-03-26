@@ -31,26 +31,26 @@ Each supported agent must pass an integration test that verifies:
 
 | Agent | Test Command Pattern | Expected Output |
 |-------|---------------------|-----------------|
-| `pi` | `./run.sh --prompt "Just say Hello!" pi` | Greeting from pi agent |
-| `opencode` | `./run.sh --prompt "Just say Hello!" opencode` | Greeting from opencode |
-| `claude` | `./run.sh --prompt "Just say Hello!" claude` | Greeting from Claude Code |
-| `codex` | `./run.sh --prompt "Just say Hello!" codex` | Greeting from Codex CLI |
+| `pi` | `adr run --prompt "Just say Hello!" pi` | Greeting from pi agent |
+| `opencode` | `adr run --prompt "Just say Hello!" opencode` | Greeting from opencode |
+| `claude` | `adr run --prompt "Just say Hello!" claude` | Greeting from Claude Code |
+| `codex` | `adr run --prompt "Just say Hello!" codex` | Greeting from Codex CLI |
 
 ### Test Execution
 
 Run all agent integration tests:
 ```bash
 # Build images first (optional if already built)
-./build.sh pi
-./build.sh opencode
-./build.sh claude
-./build.sh codex
+adr build pi
+adr build opencode
+adr build claude
+adr build codex
 
 # Run integration tests for each agent
-./run.sh --prompt "Just say Hello!" pi && echo "✓ pi test passed" || echo "✗ pi test failed"
-./run.sh --prompt "Just say Hello!" opencode && echo "✓ opencode test passed" || echo "✗ opencode test failed"
-./run.sh --prompt "Just say Hello!" claude && echo "✓ claude test passed" || echo "✗ claude test failed"
-./run.sh --prompt "Just say Hello!" codex && echo "✓ codex test passed" || echo "✗ codex test failed"
+adr run --prompt "Just say Hello!" pi && echo "✓ pi test passed" || echo "✗ pi test failed"
+adr run --prompt "Just say Hello!" opencode && echo "✓ opencode test passed" || echo "✗ opencode test failed"
+adr run --prompt "Just say Hello!" claude && echo "✓ claude test passed" || echo "✗ claude test failed"
+adr run --prompt "Just say Hello!" codex && echo "✓ codex test passed" || echo "✗ codex test failed"
 ```
 
 ## Future Test Strategy (To Be Defined)
