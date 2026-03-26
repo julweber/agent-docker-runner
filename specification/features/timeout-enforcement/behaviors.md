@@ -6,29 +6,20 @@ This document defines the behavioral requirements for timeout enforcement in Age
 
 Timeout enforcement ensures that agent executions do not run indefinitely, protecting resources and enabling reliable CI/CD pipelines. The system enforces a maximum runtime with automatic container termination when exceeded.
 
----
+## Configuration Constants
 
-## Behavior 1: Default Timeout Configuration
+The following values are enforced when --timeout is provided:
 
-**Description**: When no explicit timeout is specified, the system applies a sensible default to prevent runaway processes while allowing reasonable execution time.
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| Minimum Timeout | 5 seconds | Lowest acceptable timeout value |
+| Grace Period | 10 seconds | Time between SIGTERM and SIGKILL during timeout enforcement |
 
-### Happy Path
-- User runs `adr run --prompt "Task" pi` without `--timeout` flag
-- System applies default timeout of 30 minutes (1800 seconds)
-- Timer starts when container creation begins
-- Task completes successfully within timeout → normal exit with code 0
-
-### Error Cases
-- Invalid timeout format provided → clear error message, exit non-zero
-- Timeout value too small (< 5 seconds) → validation error with suggestion to increase
-
-### Edge Cases
-- Very long timeouts (e.g., 24h+) → accepted without warning
-- Negative or zero timeout values → rejected with error
+**Note**: When no `--timeout` flag is provided, the agent runs without any time restriction.
 
 ---
 
-## Behavior 2: Human-Readable Timeout Specification
+## Behavior 1: Human-Readable Timeout Specification
 
 **Description**: Users can specify timeout using human-readable units for improved usability.
 
@@ -48,16 +39,16 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 
 ### Error Cases
 - Invalid unit (e.g., `--timeout 1x`) → error: "Invalid timeout unit. Use s, m, h, or d"
-- Malformed value (e.g., `--timeout abc` or `--timeout -5m`) → error with guidance
-- Missing number before unit (e.g., `--timeout h`) → error
+- Malformed value (e.g., `--timeout abc`) → error: "Malformed timeout value: '{value}'. Expected a number followed by an optional unit (s, m, h, d)"
+- Missing number before unit (e.g., `--timeout h`) → error: "Missing numeric value in timeout specification: '{value}'"
 
 ### Edge Cases
 - Mixed case units (`--timeout 1H`, `--timeout 1M`) → accepted as valid
-- Decimal values (e.g., `--timeout 1.5h`) → **rejected** with error: "Decimal timeout values are not supported"
+- Decimal values (e.g., `--timeout 1.5h`) → error: "Decimal timeout values are not supported (got: {value})"
 
 ---
 
-## Behavior 3: Timeout Monitoring & Enforcement
+## Behavior 2: Timeout Monitoring & Enforcement
 
 **Description**: The system monitors elapsed time and terminates the container when timeout is reached.
 
@@ -75,7 +66,7 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 5. Container terminates, exit code non-zero indicates timeout
 
 ### User Feedback
-- Timeout occurs → stderr message: "Error: Task terminated due to timeout (max 30m exceeded)"
+- Timeout occurs → stderr message: "Error: Task terminated due to timeout (max {timeout} exceeded)" where `{timeout}` is the user-specified value (e.g., "30m", "1h", "2m")
 - Exit code is non-zero (e.g., 1) for programmatic detection
 - stdout contains any output produced before termination
 
@@ -86,7 +77,7 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 
 ---
 
-## Behavior 4: Single Total Timeout (All Phases)
+## Behavior 3: Single Total Timeout (All Phases)
 
 **Description**: A single unified timeout applies to the entire execution lifecycle from container creation through completion.
 
@@ -115,14 +106,14 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 
 ---
 
-## Behavior 5: Exit Code Semantics
+## Behavior 4: Exit Code Semantics
 
 **Description**: Exit codes provide clear signal about execution outcome for scripting and CI/CD integration.
 
 ### Exit Code Assignments
 | Exit Code | Meaning | Timeout Scenario |
 |-----------|---------|------------------|
-| 0 | Success | Task completed within timeout |
+| 0 | Success | Task completed within timeout (or no timeout specified) |
 | 1 | Error/Failure | Timeout occurred OR other error (generic) |
 | 2 | Invalid Arguments | Bad timeout format or value |
 
@@ -141,13 +132,13 @@ Timeout enforcement ensures that agent executions do not run indefinitely, prote
 
 ---
 
-## Behavior 6: Session Mode Exemption
+## Behavior 5: Session Mode Exemption
 
 **Description**: Timeout enforcement applies only to headless task mode, not interactive session mode.
 
 ### Task Mode (Headless)
-- `--timeout` flag is optional (defaults to 30m if omitted)
-- Timeout is strictly enforced with automatic termination
+- `--timeout` flag is optional; if omitted, no timeout restriction applies
+- If provided, timeout is strictly enforced with automatic termination
 
 ### Session Mode (Interactive TUI)
 - `--timeout` flag is ignored or rejected with warning
@@ -160,7 +151,7 @@ if session mode and --timeout specified:
     warn "Timeout not applicable to interactive sessions, ignoring"
     continue without timeout
 elif task mode and no --timeout specified:
-    apply 30m default
+    run indefinitely (no timeout)
 elif task mode and --timeout specified:
     parse and enforce user-specified timeout
 ```

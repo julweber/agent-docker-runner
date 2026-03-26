@@ -4,39 +4,23 @@ This document defines test cases for timeout enforcement functionality. All test
 
 ---
 
-## Test 1: Default Timeout Application
+## Test-Behavior Traceability Matrix
 
-**Purpose**: Verify that the system applies a 30-minute default timeout when no explicit timeout is specified in headless mode, and that timeouts are ignored in session mode.
-
-### Test 1.1: Headless Mode Applies Default
-**Procedure**:
-1. Run `adr run --prompt "Say hello" pi` without `--timeout` flag
-2. Monitor container execution time
-3. Verify task completes or times out within 30 minutes
-
-**Expected Outcome**: 
-- Task executes with implicit 30-minute timeout
-- If task would exceed 30 minutes, it terminates at the 30-minute mark
-- Exit code is non-zero if timeout occurred
-
-### Test 1.2: Session Mode Ignores Timeout Flag
-**Procedure**:
-1. Start interactive session: `adr run pi` (no --prompt)
-2. Specify `--timeout 5m` flag alongside session mode
-3. Observe warning message and execution behavior
-
-**Expected Outcome**:
-- Warning message displayed: "Timeout not applicable to interactive sessions, ignoring"
-- Session continues without automatic timeout
-- User controls session duration manually
+| Behavior | Validating Test(s) | Coverage Status |
+|----------|-------------------|-----------------|
+| Behavior 1: Human-Readable Timeout Specification | Test 1.1 - Test 1.9 | ✓ Covered |
+| Behavior 2: Exit Code Semantics | Test 2.1 - Test 2.4 | ✓ Covered |
+| Behavior 3: Timeout Monitoring & Enforcement | Test 3.1 - Test 3.3 | ✓ Covered |
+| Behavior 4: Edge Cases | Test 4.1 - Test 4.5 | ✓ Covered |
+| Behavior 5: Session Mode Exemption | Test 5.1 - Test 5.2 | ✓ Covered |
 
 ---
 
-## Test 2: Human-Readable Timeout Parsing
+## Test 1: Human-Readable Timeout Parsing
 
 **Purpose**: Verify that various timeout formats are correctly parsed and applied.
 
-### Test 2.1: Seconds Format (with unit)
+### Test 1.1: Seconds Format (with unit)
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 30s`
 2. Verify container timeout is set to 30 seconds
@@ -45,7 +29,7 @@ This document defines test cases for timeout enforcement functionality. All test
 - Timeout correctly parsed as 30 seconds
 - Task terminates at 30-second mark if not completed
 
-### Test 2.2: Seconds Format (without unit)
+### Test 1.2: Seconds Format (without unit)
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 60`
 2. Verify container timeout is set to 60 seconds
@@ -54,7 +38,16 @@ This document defines test cases for timeout enforcement functionality. All test
 - Timeout correctly parsed as 60 seconds (implicit seconds)
 - Task terminates at 60-second mark if not completed
 
-### Test 2.3: Minutes Format
+### Test 1.3: Minutes Format
+**Procedure**:
+1. Run `adr run --prompt "Test" pi --timeout 5m`
+2. Verify container timeout is set to 5 minutes
+
+**Expected Outcome**: 
+- Timeout correctly parsed as 300 seconds
+- Task terminates at 5-minute mark if not completed
+
+### Test 1.4: Hours Format
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 5m`
 2. Verify container timeout is set to 5 minutes
@@ -72,7 +65,16 @@ This document defines test cases for timeout enforcement functionality. All test
 - Timeout correctly parsed as 3600 seconds
 - Task terminates at 1-hour mark if not completed
 
-### Test 2.5: Days Format
+### Test 1.5: Hours Format
+**Procedure**:
+1. Run `adr run --prompt "Test" pi --timeout 1h`
+2. Verify container timeout is set to 1 hour
+
+**Expected Outcome**: 
+- Timeout correctly parsed as 3600 seconds
+- Task terminates at 1-hour mark if not completed
+
+### Test 1.6: Days Format
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 1d`
 2. Verify container timeout is set to 1 day
@@ -81,7 +83,7 @@ This document defines test cases for timeout enforcement functionality. All test
 - Timeout correctly parsed as 86400 seconds
 - Task terminates at 1-day mark if not completed
 
-### Test 2.6: Invalid Unit Rejection
+### Test 1.7: Invalid Unit Rejection
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 1x` with invalid unit
 
@@ -90,31 +92,73 @@ This document defines test cases for timeout enforcement functionality. All test
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
-### Test 2.7: Malformed Value Rejection
+### Test 1.8: Malformed Value Rejection
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout abc` with non-numeric value
 
 **Expected Outcome**: 
-- Error message indicating malformed timeout value
+- Error message: "Malformed timeout value: 'abc'. Expected a number followed by an optional unit (s, m, h, d)"
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
-### Test 2.8: Decimal Value Rejection
+### Test 1.9: Decimal Value Rejection
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 1.5h` with decimal value
 
 **Expected Outcome**: 
-- Error message: "Decimal timeout values are not supported"
+- Error message: "Decimal timeout values are not supported (got: {value})"
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
-### Test 2.9: Mixed Case Acceptance
+### Test 1.10: Mixed Case Acceptance
 **Procedure**:
 1. Run `adr run --prompt "Test" pi --timeout 1H` with uppercase unit
 
 **Expected Outcome**: 
 - Timeout correctly parsed as 3600 seconds
 - Execution proceeds normally
+
+---
+
+## Test 2: Exit Code Semantics
+
+**Purpose**: Verify that exit codes provide clear signal about execution outcome for scripting and CI/CD integration.
+
+### Test 2.1: Successful Completion Returns Exit Code 0
+**Procedure**:
+1. Run `adr run --prompt "Say hello" pi --timeout 5m` with a task that completes quickly
+2. Check exit code immediately after completion
+
+**Expected Outcome**: 
+- Exit code is exactly 0
+- No error messages in stderr
+
+### Test 2.2: Timeout Returns Exit Code 1
+**Procedure**:
+1. Run `adr run --prompt "Long task" pi --timeout 10s` with a task guaranteed to exceed timeout
+2. Verify exit code after timeout occurs
+
+**Expected Outcome**: 
+- Exit code is exactly 1
+- Error message in stderr: "Error: Task terminated due to timeout (max 10s exceeded)"
+
+### Test 2.3: Invalid Arguments Return Exit Code 2
+**Procedure**:
+1. Run `adr run --prompt "Test" pi --timeout 1x` with invalid timeout format
+2. Check exit code before container creation
+
+**Expected Outcome**: 
+- Exit code is exactly 2
+- Error message indicates invalid argument format
+
+### Test 2.4: Signal Interruption Returns Exit Code 130
+**Procedure**:
+1. Start a task or session
+2. Send SIGINT (Ctrl+C) during execution
+3. Check exit code after interruption
+
+**Expected Outcome**: 
+- Exit code is exactly 130 (standard for SIGINT)
 
 ---
 
@@ -130,7 +174,7 @@ This document defines test cases for timeout enforcement functionality. All test
 
 **Expected Outcome**: 
 - Container terminates when 2-minute limit is reached
-- Error message: "Error: Task terminated due to timeout (max 2m exceeded)"
+- Error message: "Error: Task terminated due to timeout (max {timeout} exceeded)" where `{timeout}` = "2m"
 - Exit code is non-zero (1) indicating failure
 - Any output produced before termination is captured in stdout
 
@@ -158,6 +202,7 @@ This document defines test cases for timeout enforcement functionality. All test
 - Timer starts from container creation, not after initialization completes
 - Timeout can occur during image pull, config staging, or agent startup phases
 - User sees appropriate timeout message regardless of phase where it occurred
+- **Note**: This test implicitly validates Behavior 3 (Single Total Timeout) by confirming the countdown does not reset between lifecycle phases
 
 ---
 
@@ -170,7 +215,7 @@ This document defines test cases for timeout enforcement functionality. All test
 1. Run `adr run --prompt "Test" pi --timeout 3s` with timeout below minimum threshold
 
 **Expected Outcome**: 
-- Validation error message suggesting to increase timeout value
+- Validation error message matches pattern: "Timeout value must be at least 5 seconds (got: {value})" where `{value}` = "3s"
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
@@ -179,7 +224,7 @@ This document defines test cases for timeout enforcement functionality. All test
 1. Run `adr run --prompt "Test" pi --timeout 0` or `--timeout 0s`
 
 **Expected Outcome**: 
-- Error message indicating zero timeout is invalid
+- Error message: "Timeout value must be greater than zero (got: {value})"
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
@@ -188,7 +233,7 @@ This document defines test cases for timeout enforcement functionality. All test
 1. Run `adr run --prompt "Test" pi --timeout -5m` with negative value
 
 **Expected Outcome**: 
-- Error message indicating negative timeout is invalid
+- Error message matches pattern: "Negative timeout values are not allowed (got: {value})" where `{value}` = "-5m"
 - Exit code is 2 (invalid arguments)
 - No container execution occurs
 
@@ -270,10 +315,11 @@ echo "Exit code: $?"
 ## Quality Gates
 
 ### Minimum Requirements for Merge
-- All parsing tests (Test 2) must pass
-- Default timeout application verified (Test 1.1)
-- Session mode exemption confirmed (Test 5.1)
+- All parsing tests (Test 1) must pass
+- Exit code semantics verified (Test 2.x series)
+- Timeout enforcement confirmed (Test 3.x series)
 - Edge case handling correct (Test 4.x series)
+- Session mode exemption tested (Test 5.1)
 
 ### Definition of "Passing"
 A test passes when:

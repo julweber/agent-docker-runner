@@ -1,0 +1,202 @@
+featureName: timeout-enforcement
+branchName: feat/timeout-enforcement
+tasks:
+  - id: "task-001"
+    title: "Implement timeout parsing test suite"
+    description: "Create integration tests for human-readable timeout specification parsing. Cover all valid formats (seconds with/without unit, minutes, hours, days) and invalid formats (bad units, malformed values, decimal values). Tests should verify correct parsing and appropriate exit codes."
+    source:
+      - "specification/features/timeout-enforcement/tests.md#test-1-human-readable-timeout-parsing"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "Tests pass for valid formats: 30s, 60 (implicit s), 5m, 1h, 1d"
+      - "Tests reject invalid unit '1x' with exit code 2 and correct error message"
+      - "Tests reject malformed value 'abc' with exit code 2 and correct error message"
+      - "Tests reject decimal value '1.5h' with exit code 2 and correct error message"
+      - "Tests accept mixed case units like '1H'"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-002"
+    title: "Implement exit code semantics tests"
+    description: "Create integration tests verifying correct exit codes for different execution outcomes. Test successful completion (exit 0), timeout failure (exit 1), invalid arguments (exit 2), and signal interruption (exit 130)."
+    source:
+      - "specification/features/timeout-enforcement/tests.md#test-2-exit-code-semantics"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "Test verifies successful task completion returns exit code 0"
+      - "Test verifies timeout occurrence returns exit code 1 with correct stderr message"
+      - "Test verifies invalid timeout format returns exit code 2"
+      - "Test verifies SIGINT interruption returns exit code 130"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-003"
+    title: "Implement timeout enforcement tests"
+    description: "Create integration tests for timeout monitoring and enforcement behavior. Verify container termination at timeout, graceful shutdown sequence with SIGTERM/SIGKILL (10s grace period), and timeout during startup phases."
+    source:
+      - "specification/features/timeout-enforcement/tests.md#test-3-timeout-enforcement"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "Test verifies container terminates when configured timeout is reached"
+      - "Test confirms error message 'Error: Task terminated due to timeout (max {timeout} exceeded)' appears in stderr"
+      - "Manual test validates SIGTERM sent first, then SIGKILL after 10 seconds if unresponsive"
+      - "Test verifies timeout applies to entire lifecycle including startup phases"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-004"
+    title: "Implement edge case tests"
+    description: "Create integration tests for boundary conditions and unusual inputs. Test very short timeout rejection (<5s), zero/negative timeout rejection, very long timeout acceptance, and independent timers for concurrent tasks."
+    source:
+      - "specification/features/timeout-enforcement/tests.md#test-4-edge-cases"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "Test rejects timeout below 5 seconds with exit code 2 and correct error message"
+      - "Test rejects zero and negative timeout values with appropriate error messages"
+      - "Test accepts very long timeouts (e.g., 7d) without warnings"
+      - "Test validates independent timers for concurrent container instances"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-005"
+    title: "Implement session mode exemption tests"
+    description: "Create integration tests verifying timeout behavior in interactive session mode. Test that --timeout flag is ignored with warning in session mode, and manual exit still works correctly."
+    source:
+      - "specification/features/timeout-enforcement/tests.md#test-5-session-mode-exemption"
+    priority: 1
+    dependsOn: []
+    successCriteria:
+      - "Test verifies warning 'Timeout not applicable to interactive sessions, ignoring' appears when --timeout used in session mode"
+      - "Test confirms session runs without automatic termination despite timeout flag"
+      - "Test validates manual exit (Ctrl+C) works with correct exit code 130"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-006"
+    title: "Implement human-readable timeout parser with validation"
+    description: "Build the core timeout parsing logic that accepts human-readable formats (s, m, h, d units) and converts them to seconds. Parse both explicit units (--timeout 30s) and implicit seconds (--timeout 60). Validate mixed case acceptance (1H, 1M) and reject invalid formats with specific error messages."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-1-human-readable-timeout-specification"
+    priority: 2
+    dependsOn: []
+    successCriteria:
+      - "Parser accepts '30s', '60', '5m', '1h', '1d' and converts to correct seconds (30, 60, 300, 3600, 86400)"
+      - "Parser rejects invalid unit '1x' with error: 'Invalid timeout unit. Use s, m, h, or d'"
+      - "Parser rejects malformed value 'abc' with error matching pattern for malformed values"
+      - "Parser rejects missing numeric value 'h' with appropriate error message"
+      - "Parser accepts mixed case '1H', '1M' as valid"
+      - "Parser rejects decimal values like '1.5h' with specific error message"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-007"
+    title: "Implement minimum timeout threshold validation"
+    description: "Add validation to enforce the minimum timeout value of 5 seconds. Reject zero, negative, and sub-minimum timeout values with descriptive error messages indicating the actual value provided and the minimum requirement."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-1-human-readable-timeout-specification"
+      - "specification/features/timeout-enforcement/tests.md#test-4-edge-cases"
+    priority: 2
+    dependsOn: ["task-006"]
+    successCriteria:
+      - "Validation rejects '3s' with error: 'Timeout value must be at least 5 seconds (got: 3s)'"
+      - "Validation rejects '0' or '0s' with error indicating value must be greater than zero"
+      - "Validation rejects '-5m' with error: 'Negative timeout values are not allowed (got: -5m)'"
+      - "Validation accepts exactly '5s' as the minimum valid value"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-008"
+    title: "Implement timeout monitoring and timer infrastructure"
+    description: "Build the timer mechanism that tracks elapsed time from container creation through completion. The timer must start immediately when the container is created (including image pull, config staging, agent startup, and execution phases) and run independently for each container instance."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-3-single-total-timeout-all-phases"
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-2-timeout-monitoring--enforcement"
+    priority: 2
+    dependsOn: ["task-007"]
+    successCriteria:
+      - "Timer starts from container creation, not after initialization completes"
+      - "Timer tracks total elapsed time across all lifecycle phases (pull, staging, startup, execution)"
+      - "Multiple concurrent containers each have independent timers that do not interfere"
+      - "Timer can detect timeout during any phase including image pull and config staging"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-009"
+    title: "Implement SIGTERM/SIGKILL graceful shutdown sequence with 10s grace period"
+    description: "Implement the container termination logic that enforces timeout. When timeout is reached, send SIGTERM first to allow graceful shutdown. If container remains unresponsive after exactly 10 seconds (grace period), force terminate with SIGKILL."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-2-timeout-monitoring--enforcement"
+    priority: 3
+    dependsOn: ["task-008"]
+    successCriteria:
+      - "SIGTERM sent immediately when configured timeout limit is reached"
+      - "Container given exactly 10 seconds grace period to shut down gracefully"
+      - "SIGKILL sent after 10 seconds if container still unresponsive"
+      - "Signal sequence can be verified through container inspection or system logs"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-010"
+    title: "Implement error messages for timeout violations"
+    description: "Add user-facing error output when timeout occurs. The stderr message must follow the exact format 'Error: Task terminated due to timeout (max {timeout} exceeded)' where {timeout} is the original user-specified value (e.g., '30m', '1h', '2m'). Ensure exit code 1 is returned for timeout failures."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-2-timeout-monitoring--enforcement"
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-4-exit-code-semantics"
+    priority: 3
+    dependsOn: ["task-009"]
+    successCriteria:
+      - "Error message 'Error: Task terminated due to timeout (max {timeout} exceeded)' printed to stderr on timeout"
+      - "{timeout} placeholder replaced with original user input (e.g., '2m', '1h') not converted seconds"
+      - "Exit code 1 returned for timeout failures"
+      - "stdout contains any output produced before termination"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-011"
+    title: "Implement session mode exemption logic"
+    description: "Add detection and handling for interactive session mode. When --timeout flag is provided in session mode (no --prompt), display warning message 'Timeout not applicable to interactive sessions, ignoring' and continue without enforcing timeout restriction."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-5-session-mode-exemption"
+    priority: 3
+    dependsOn: ["task-010"]
+    successCriteria:
+      - "Session mode detected when --prompt flag is absent"
+      - "Warning 'Timeout not applicable to interactive sessions, ignoring' displayed when --timeout used in session mode"
+      - "Session runs without automatic timeout enforcement regardless of --timeout value"
+      - "Task mode correctly enforces timeout when --prompt is present"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
+
+  - id: "task-012"
+    title: "Integrate timeout enforcement into Container Manager workflow"
+    description: "Wire together all timeout components in the Container Manager. Ensure timeout parsing, validation, monitoring, and enforcement work seamlessly with existing container lifecycle management. Verify that task mode without --timeout runs indefinitely, while task mode with --timeout enforces the specified limit."
+    source:
+      - "specification/features/timeout-enforcement/behaviors.md#behavior-2-timeout-monitoring--enforcement"
+      - "specification/project/architecture.md#container-manager"
+    priority: 4
+    dependsOn: ["task-011"]
+    successCriteria:
+      - "Container Manager correctly parses and validates --timeout argument before container creation"
+      - "Timer integration starts automatically when container is created in task mode with timeout"
+      - "Enforcement logic triggers at correct time without manual intervention"
+      - "Task mode without --timeout flag runs without any timeout restriction"
+      - "Session mode ignores --timeout flag gracefully with appropriate warning"
+      - "Exit codes properly propagated to user (0 for success, 1 for timeout/error, 2 for invalid args)"
+      - "All existing tests continue to pass"
+    status: pending
+    attempts: 0
