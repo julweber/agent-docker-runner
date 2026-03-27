@@ -9,6 +9,7 @@ Build Docker image(s) for an agent.
 Options:
   --tag TAG       Use a custom tag instead of 'latest'
   --no-cache      Build without using cached layers
+  --yes           Skip confirmation prompt (for CI/CD)
   -h, --help      Show this help message
 
 If no <agent> is specified, prompts to build all agents.
@@ -22,13 +23,19 @@ cmd_build_help() {
 cmd_build_all() {
     local tag="$1"
     local no_cache="$2"
+    local yes_flag="$3"
     local response=""
     local success_count=0
     local fail_count=0
     local agent=""
 
     echo "Known agents: ${KNOWN_AGENTS[*]}"
-    read -r -p "Build all agents? [y/N] " response
+
+    if [[ "$yes_flag" == true ]]; then
+        response="y"
+    else
+        read -r -p "Build all agents? [y/N] " response
+    fi
 
     case "$response" in
         [Yy]*)
@@ -59,6 +66,7 @@ cmd_build_all() {
 cmd_build() {
     local tag=""
     local no_cache=false
+    local yes_flag=false
     local agent=""
     local tag_provided=false
 
@@ -75,6 +83,10 @@ cmd_build() {
                 ;;
             --no-cache)
                 no_cache=true
+                shift
+                ;;
+            --yes)
+                yes_flag=true
                 shift
                 ;;
             --help|-h)
@@ -102,7 +114,7 @@ cmd_build() {
     local effective_tag="${tag:-$ADR_TAG}"
 
     if [[ -z "$agent" ]]; then
-        cmd_build_all "$effective_tag" "$no_cache"
+        cmd_build_all "$effective_tag" "$no_cache" "$yes_flag"
         return $?
     fi
 

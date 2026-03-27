@@ -1,5 +1,21 @@
 # shellcheck shell=bash
 
+# Detect if we have GNU date (Linux) or BSD date (macOS)
+_detect_date_variant() {
+    # Try GNU date syntax (-d flag parses datetime)
+    if date -d "2024-01-01 00:00:00" +%s >/dev/null 2>&1; then
+        echo "gnu"
+    # Try BSD date syntax (-j flag prevents setting, -f parses datetime)
+    elif date -j -f "%Y-%m-%d %H:%M:%S" "2024-01-01 00:00:00" +%s >/dev/null 2>&1; then
+        echo "bsd"
+    else
+        echo "gnu"  # Default to GNU fallback
+    fi
+}
+
+# Store the detected date variant at script load time
+_DATE_VARIANT="$(_detect_date_variant)"
+
 relative_time() {
     local created="$1"
     local created_epoch=""
@@ -19,10 +35,24 @@ relative_time() {
         return
     fi
 
-    created_epoch=$(date -d "$created" +%s 2>/dev/null) || {
-        echo "-"
-        return
-    }
+    # Strip timezone info - use only the datetime portion
+    # Docker format: "2026-03-25 12:01:06 +0100 CET" -> "2026-03-25 12:01:06"
+    # This strips everything after the first 19 characters (datetime only)
+    created="${created:0:19}"
+
+    # Use OS-appropriate date syntax (GNU vs BSD)
+    if [[ "$_DATE_VARIANT" == "gnu" ]]; then
+        created_epoch=$(date -d "$created" +%s 2>/dev/null) || {
+            echo "-"
+            return
+        }
+    else
+        # BSD/macOS: date -j -f format_string datetime +format
+        created_epoch=$(date -j -f "%Y-%m-%d %H:%M:%S" "$created" +%s 2>/dev/null) || {
+            echo "-"
+            return
+        }
+    fi
 
     now_epoch=$(date +%s)
     diff=$((now_epoch - created_epoch))

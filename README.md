@@ -76,6 +76,24 @@ less rework.
 > `yq` are used by some helper scripts. They are not required just to run an
 > agent container with `adr run`.
 
+### Network Requirements
+
+When using external coding agents (pi, opencode, claude, codex), the containers
+must have network access to connect to their respective APIs. This is required
+because these agents connect to external AI services to generate code and
+process prompts.
+
+- **pi** — requires internet access to connect to the pi coding agent API (or your
+  configured provider such as Ollama, LM Studio, OpenRouter, etc.)
+- **opencode** — requires internet access to connect to the OpenCode API or your
+  configured provider
+- **claude** — requires internet access to connect to Anthropic's API
+- **codex** — requires internet access to connect to OpenAI's API
+
+If your environment restricts network access (e.g., corporate firewalls, air-gapped
+systems), you will need to configure the agents to use local models instead, or
+ensure the container has appropriate network connectivity.
+
 ---
 
 ## Installation
@@ -477,6 +495,9 @@ Changes ownership of all files in a directory recursively to the current user.
 This command is useful on Linux when the container runs as UID 1000 and creates
 files that are owned by that UID on the host. If your host user has a different
 UID, use this command to fix ownership.
+
+> **Requires passwordless sudo** — the command uses `sudo chown` to change file
+> ownership, which requires your user to have passwordless sudo privileges.
 ```
 
 ---
@@ -503,6 +524,8 @@ adr fix-owner
 # Or specify a target directory
 adr fix-owner /path/to/workspace
 ```
+
+> **Requires passwordless sudo** — `adr fix-owner` uses `sudo chown` under the hood.
 
 ### macOS — no special action needed
 

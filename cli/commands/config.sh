@@ -56,6 +56,14 @@ cmd_config_set() {
     key="${arg%%=*}"
     value="${arg#*=}"
 
+    # Validate key format: must start with ADR_ followed by alphanumeric chars and underscores
+    if [[ ! "$key" =~ ^ADR_[A-Z][A-Z0-9_]*$ ]]; then
+        echo "Error: Invalid key format '$key'" >&2
+        echo "Error: Config keys must start with 'ADR_' followed by uppercase letters, numbers, and underscores" >&2
+        echo "Error: Valid keys: ADR_TAG, ADR_AGENT, ADR_MODEL_PI, ADR_MODEL_CLAUDE, ADR_MODEL_OPENCODE, ADR_MODEL_CODEX" >&2
+        exit 1
+    fi
+
     case "$key" in
         ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX)
             ;;

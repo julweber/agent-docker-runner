@@ -26,11 +26,15 @@ cfg_load_global_config() {
 
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
         [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
-        key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
 
         case "$key" in
             ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX)
                 GLOBAL_CONFIG["$key"]="$value"
+                ;;
+            *)
+                echo "Warning: Unknown config key '$key' - ignoring" >&2
                 ;;
         esac
     done < "$global_config_file"
@@ -62,11 +66,15 @@ cfg_load_project_config() {
 
     while IFS='=' read -r key value || [[ -n "$key" ]]; do
         [[ -z "$key" || "$key" =~ ^[[:space:]]*# ]] && continue
-        key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+        key="${key#"${key%%[![:space:]]*}"}"
+        key="${key%"${key##*[![:space:]]}"}"
 
         case "$key" in
             ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX)
                 PROJECT_CONFIG["$key"]="$value"
+                ;;
+            *)
+                echo "Warning: Unknown config key '$key' - ignoring" >&2
                 ;;
         esac
     done < "$adr_file"
