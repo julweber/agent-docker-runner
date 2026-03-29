@@ -21,9 +21,97 @@ Options:
   --shell           Drop into bash inside the container for debugging
   --tag TAG         Use a pinned image tag instead of 'latest'
   --model MODEL     Override the model at runtime
+  --env KEY=VALUE   Set an environment variable (can be specified multiple times)
+  -e KEY=VALUE      Short form of --env
+  --env-file FILE   Load environment variables from a file (.env format)
 
 If no <agent> is specified, uses ADR_AGENT from .adr file or global config.
 EOF
+}
+
+# Validate environment variable name per shell conventions:
+# - Must start with a letter or underscore
+# - Contains only letters, numbers, and underscores
+is_valid_env_var_name() {
+    local key="$1"
+    [[ "$key" =~ ^[A-Za-z_][A-Za-z0-9_]*$ ]]
+}
+
+# Validate a single KEY=VALUE argument
+validate_env_arg() {
+    local arg="$1"
+
+    if [[ ! "$arg" =~ ^([^=]+)=(.*)$ ]]; then
+        echo "Error: Invalid --env format. Expected KEY=VALUE"
+        return 1
+    fi
+
+    local key="${BASH_REMATCH[1]}"
+    local value="${BASH_REMATCH[2]}"
+
+    if [[ -z "$key" ]]; then
+        echo "Error: Environment variable name cannot be empty"
+        return 1
+    fi
+
+    if ! is_valid_env_var_name "$key"; then
+        echo "Error: Invalid environment variable name '$key'. Must start with a letter or underscore, contain only alphanumeric characters and underscores."
+        return 1
+    fi
+
+    return 0
+}
+
+# Load environment variables from a file (in .env format)
+load_env_file() {
+    local env_file="$1"
+    local -n env_vars=$2  # nameref to array
+
+    if [[ ! -f "$env_file" ]]; then
+        echo "Error: Env file not found: $env_file" >&2
+        return 1
+    fi
+
+    if [[ ! -r "$env_file" ]]; then
+        echo "Error: Cannot read env file: $env_file" >&2
+        return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        # Skip empty lines and comments
+        local trimmed="${line%%#*}"
+        if [[ -z "${trimmed// }" ]]; then
+            continue
+        fi
+
+        # Check for valid KEY=VALUE format
+        if [[ ! "$line" =~ ^[A-Za-z_][A-Za-z0-9_]*[[:space:]]*=.+$ ]]; then
+            # Extract just the key portion to provide a better error message
+            local possible_key="${line%%=*}"
+            possible_key=$(echo "$possible_key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            if [[ -n "$possible_key" ]]; then
+                echo "Error: Invalid environment variable name '$possible_key' in env file. Must start with a letter or underscore, contain only alphanumeric characters and underscores." >&2
+            else
+                echo "Error: Invalid line format in env file. Expected KEY=VALUE" >&2
+            fi
+            return 1
+        fi
+
+        # Extract key and value (allowing = in value)
+        if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)[[:space:]]*=[[:space:]]*(.*)$ ]]; then
+            local key="${BASH_REMATCH[1]}"
+            local value="${BASH_REMATCH[2]}"
+
+            # Trim leading/trailing whitespace from key and value
+            key=$(echo "$key" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+            value=$(echo "$value" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
+
+            # Add to array (last value wins for duplicates)
+            env_vars["$key"]="$value"
+        fi
+    done < "$env_file"
+
+    return 0
 }
 
 cmd_run_help() {
@@ -51,6 +139,8 @@ run_agent() {
     local headless="$7"
     local shell_mode="$8"
     local model_override="$9"
+    shift 9
+    local -a env_vars=("$@")
     local CMD=(docker run --rm)
     local STAGED_CONFIG=""
     local STAGED_CLAUDE_JSON=""
@@ -120,6 +210,13 @@ run_agent() {
         CMD+=(--env "AGENT_PROMPT=$prompt")
     fi
 
+    # Add user-provided environment variables
+    for env in "${env_vars[@]}"; do
+        local key="${env%%=*}"
+        local value="${env#*=}"
+        CMD+=(--env "$key=$value")
+    done
+
     if [[ "$agent" == "codex" ]]; then
         [[ -n "${CODEX_API_KEY:-}" ]] && CMD+=(--env "CODEX_API_KEY=$CODEX_API_KEY")
         [[ -n "${OPENAI_API_KEY:-}" ]] && CMD+=(--env "OPENAI_API_KEY=$OPENAI_API_KEY")
@@ -142,6 +239,8 @@ cmd_run() {
     local tag="${ADR_TAG:-latest}"
     local model_override=""
     local agent=""
+    local -A env_file_vars  # associative array for env vars from file
+    local -a cli_env_vars=()  # array for --env arguments
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -200,6 +299,29 @@ cmd_run() {
                     exit 1
                 fi
                 model_override="$2"
+                shift 2
+                ;;
+            --env|-e)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --env requires a value" >&2
+                    exit 1
+                fi
+                # Validate the argument format
+                if ! validate_env_arg "$2"; then
+                    exit 1
+                fi
+                cli_env_vars+=("$2")
+                shift 2
+                ;;
+            --env-file)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --env-file requires a value" >&2
+                    exit 1
+                fi
+                # Load env vars from file into associative array
+                if ! load_env_file "$2" env_file_vars; then
+                    exit 1
+                fi
                 shift 2
                 ;;
             --help|-h)
@@ -287,5 +409,13 @@ cmd_run() {
         fi
     fi
 
-    run_agent "$agent" "$tag" "$workspace" "$config_dir" "$claude_config_file" "$prompt" "$headless" "$shell_mode" "$model_override"
+    # Merge environment variables: env_file first, then cli args override (last wins)
+    local -a all_env_vars=()
+    for key in "${!env_file_vars[@]}"; do
+        all_env_vars+=("$key=${env_file_vars[$key]}")
+    done
+    # Append CLI args last (they take precedence if duplicate key)
+    all_env_vars+=("${cli_env_vars[@]}")
+
+    run_agent "$agent" "$tag" "$workspace" "$config_dir" "$claude_config_file" "$prompt" "$headless" "$shell_mode" "$model_override" "${all_env_vars[@]}"
 }

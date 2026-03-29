@@ -28,6 +28,9 @@ complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" 
 complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l shell -d 'Drop into bash inside the container for debugging'
 complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l tag -d 'Use a pinned image tag instead of latest' -r
 complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l model -d 'Override the model at runtime' -r
+complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -s e -d 'Set an environment variable (KEY=VALUE)' -r
+complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l env -d 'Set an environment variable (KEY=VALUE)' -r
+complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l env-file -d 'Load environment variables from a file' -r -F
 complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -s h -d 'Show help'
 complete -c adr -n "__fish_use_subcommand; and __fish_seen_subcommand_from run" -l help -d 'Show help'
 

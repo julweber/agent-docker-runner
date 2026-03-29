@@ -22,7 +22,7 @@ _adr_completions() {
             # After build/run/update, offer agent names (unless --help or flags follow)
             if [[ "$cur" == -* ]]; then
                 # Complete flags for these commands
-                COMPREPLY=( $(compgen -W "--tag --no-cache --workspace --config --config-file --prompt --headless --shell --model --help -h -w -c" -- "$cur") )
+                COMPREPLY=( $(compgen -W "--tag --no-cache --workspace --config --config-file --prompt --headless --shell --model --env --env-file --help -h -w -c -e" -- "$cur") )
             else
                 COMPREPLY=( $(compgen -W "$agents" -- "$cur") )
             fi

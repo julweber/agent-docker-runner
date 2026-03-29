@@ -87,7 +87,7 @@ _adr_run() {
         "claude:Claude Code by Anthropic"
         "codex:OpenAI Codex CLI"
     )
-    
+
     _arguments -C \
         "--workspace[Host directory mounted as /workspace]:DIR:_files -/" \
         "-w[Host directory mounted as /workspace]:DIR:_files -/" \
@@ -99,6 +99,9 @@ _adr_run() {
         "--shell[Drop into bash inside the container]" \
         "--tag[Use a pinned image tag instead of latest]:TAG:" \
         "--model[Override the model at runtime]:MODEL:" \
+        "-e[Set an environment variable]:KEY=VALUE:" \
+        "--env[Set an environment variable]:KEY=VALUE:" \
+        "--env-file[Load environment variables from a file]:FILE:_files" \
         "-h[Show help]" \
         "--help[Show help]" \
         "::agent :_adr_agents"
