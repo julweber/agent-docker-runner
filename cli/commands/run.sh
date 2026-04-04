@@ -24,6 +24,10 @@ Options:
   --env KEY=VALUE   Set an environment variable (can be specified multiple times)
   -e KEY=VALUE      Short form of --env
   --env-file FILE   Load environment variables from a file (.env format)
+  --mount HOST:CONTAINER[:ro|rw]
+                    Mount a host directory into the container (default mode: ro)
+  -m HOST:CONTAINER[:ro|rw]
+                    Short form of --mount
 
 If no <agent> is specified, uses ADR_AGENT from .adr file or global config.
 EOF
@@ -60,6 +64,63 @@ validate_env_arg() {
     fi
 
     return 0
+}
+
+# Parse and validate a single HOST:CONTAINER[:ro|rw] mount argument.
+# Outputs the normalised HOST:CONTAINER:MODE string on success.
+parse_mount_arg() {
+    local arg="$1"
+
+    # Must contain at least one ':'
+    if [[ "$arg" != *:* ]]; then
+        echo "Error: Invalid --mount format. Expected HOST:CONTAINER[:ro|rw]" >&2
+        return 2
+    fi
+
+    local host_path container_path mode
+
+    # Split into at most 3 parts on ':'
+    # We split by counting colons: HOST:CONTAINER or HOST:CONTAINER:MODE
+    local part1="${arg%%:*}"
+    local rest="${arg#*:}"
+    host_path="$part1"
+
+    if [[ "$rest" == *:* ]]; then
+        container_path="${rest%%:*}"
+        mode="${rest#*:}"
+    else
+        container_path="$rest"
+        mode="ro"
+    fi
+
+    # Validate container path is absolute
+    if [[ "$container_path" != /* ]]; then
+        echo "Error: Mount container path must be absolute: $container_path" >&2
+        return 2
+    fi
+
+    # Validate mode
+    if [[ "$mode" != "ro" && "$mode" != "rw" ]]; then
+        echo "Error: Invalid mount mode '$mode'. Must be 'ro' or 'rw'" >&2
+        return 2
+    fi
+
+    # Canonicalise host path
+    host_path=$(realpath -m "$host_path")
+
+    # Validate host path exists
+    if [[ ! -e "$host_path" ]]; then
+        echo "Error: Mount host path does not exist: $host_path" >&2
+        return 2
+    fi
+
+    # Validate host path is a directory
+    if [[ ! -d "$host_path" ]]; then
+        echo "Error: Mount host path is not a directory: $host_path" >&2
+        return 2
+    fi
+
+    echo "${host_path}:${container_path}:${mode}"
 }
 
 # Load environment variables from a file (in .env format)
@@ -139,7 +200,10 @@ run_agent() {
     local headless="$7"
     local shell_mode="$8"
     local model_override="$9"
-    shift 9
+    local mount_count="${10}"
+    shift 10
+    local -a mount_args=("${@:1:$mount_count}")
+    shift "$mount_count"
     local -a env_vars=("$@")
     local CMD=(docker run --rm)
     local STAGED_CONFIG=""
@@ -217,6 +281,11 @@ run_agent() {
         CMD+=(--env "$key=$value")
     done
 
+    # Add user-provided volume mounts
+    for mount in "${mount_args[@]}"; do
+        CMD+=(-v "$mount")
+    done
+
     if [[ "$agent" == "codex" ]]; then
         [[ -n "${CODEX_API_KEY:-}" ]] && CMD+=(--env "CODEX_API_KEY=$CODEX_API_KEY")
         [[ -n "${OPENAI_API_KEY:-}" ]] && CMD+=(--env "OPENAI_API_KEY=$OPENAI_API_KEY")
@@ -241,6 +310,7 @@ cmd_run() {
     local agent=""
     local -A env_file_vars  # associative array for env vars from file
     local -a cli_env_vars=()  # array for --env arguments
+    local -a mount_args=()    # array for --mount arguments (normalised HOST:CONTAINER:MODE)
 
     while [[ $# -gt 0 ]]; do
         case "$1" in
@@ -322,6 +392,18 @@ cmd_run() {
                 if ! load_env_file "$2" env_file_vars; then
                     exit 1
                 fi
+                shift 2
+                ;;
+            --mount|-m)
+                if [[ $# -lt 2 ]]; then
+                    echo "Error: --mount requires a value" >&2
+                    exit 1
+                fi
+                local parsed_mount
+                if ! parsed_mount=$(parse_mount_arg "$2"); then
+                    exit 2
+                fi
+                mount_args+=("$parsed_mount")
                 shift 2
                 ;;
             --help|-h)
@@ -417,5 +499,21 @@ cmd_run() {
     # Append CLI args last (they take precedence if duplicate key)
     all_env_vars+=("${cli_env_vars[@]}")
 
-    run_agent "$agent" "$tag" "$workspace" "$config_dir" "$claude_config_file" "$prompt" "$headless" "$shell_mode" "$model_override" "${all_env_vars[@]}"
+    # Merge mounts: config-file mounts first, then CLI mounts append
+    local -a all_mount_args=()
+    local adr_mounts_str
+    adr_mounts_str=$(cfg_get "ADR_MOUNTS")
+    if [[ -n "$adr_mounts_str" ]]; then
+        local mount_entry
+        for mount_entry in $adr_mounts_str; do
+            local parsed_mount
+            if ! parsed_mount=$(parse_mount_arg "$mount_entry"); then
+                exit 2
+            fi
+            all_mount_args+=("$parsed_mount")
+        done
+    fi
+    all_mount_args+=("${mount_args[@]}")
+
+    run_agent "$agent" "$tag" "$workspace" "$config_dir" "$claude_config_file" "$prompt" "$headless" "$shell_mode" "$model_override" "${#all_mount_args[@]}" "${all_mount_args[@]}" "${all_env_vars[@]}"
 }

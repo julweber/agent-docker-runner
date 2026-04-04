@@ -368,6 +368,15 @@ adr run -w ~/projects/myapp --shell claude
 
 # Override config directory (e.g. for a separate project-specific config)
 adr run -w ~/projects/myapp -c ~/my-custom-config claude
+
+# Mount an additional host directory read-only (default when mode is omitted)
+adr run -m /data/reference:/data claude
+
+# Mount a directory read-write (e.g. for agent output)
+adr run --mount /tmp/output:/output:rw pi
+
+# Multiple mounts
+adr run -m /data/reference:/data:ro -m /tmp/output:/output:rw claude
 ```
 
 ---
@@ -461,8 +470,36 @@ Options:
                           opencode: "provider/model" format (e.g. anthropic/claude-sonnet-4).
                           claude:   alias (e.g. sonnet, opus) or full name (e.g. claude-sonnet-4-6).
                           codex:    model name understood by the Codex CLI.
+  -e, --env KEY=VALUE     Set an environment variable inside the container.
+                          May be specified multiple times.
+      --env-file FILE     Load environment variables from a file (.env format).
+  -m, --mount HOST:CONTAINER[:ro|rw]
+                          Mount a host directory into the container.
+                          Mode is optional and defaults to ro (read-only).
+                          May be specified multiple times; mounts accumulate
+                          in the order they are declared.
+                          Host path must exist and be a directory.
+                          Example: -m /data/reference:/data
+                          Example: --mount /tmp/output:/output:rw
   -h, --help              Show this help text.
 ```
+
+### `ADR_MOUNTS` — persistent mounts via config file
+
+Additional directory mounts can be declared in `~/.config/adr/config` (global)
+or in a project `.adr` file so they apply automatically without repeating flags
+on every invocation.
+
+```
+# ~/.config/adr/config or .adr
+ADR_MOUNTS=/host/reference:/data:ro /host/output:/output:rw
+```
+
+- Value is a **space-separated** list of `HOST:CONTAINER[:ro|rw]` entries.
+- Same syntax and validation rules as `--mount`.
+- Config-file mounts are applied first; `--mount` flags from the CLI append afterward.
+
+---
 
 ### `adr build`
 
@@ -542,7 +579,7 @@ are staged from your config directory and are never baked into Docker image laye
 | Control | Value |
 |---|---|
 | Network | Full outbound access (agent needs to call AI APIs) |
-| Filesystem | Only `/workspace` is writable from the host's perspective |
+| Filesystem | `/workspace` is writable by default; additional mounts via `--mount`/`ADR_MOUNTS` can expose further host paths (read-only or read-write as configured) |
 | Capabilities | `--cap-drop ALL` with `--cap-add SETUID,SETGID` for privilege dropping |
 | Privilege escalation | `--security-opt no-new-privileges` |
 | Container filesystem (non-workspace) | Writable by `node` user (UID 1000, not root) — ephemeral, discarded on exit |

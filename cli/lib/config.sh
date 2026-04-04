@@ -9,6 +9,7 @@ declare -A BUILTIN_CONFIG=(
     [ADR_MODEL_CLAUDE]=""
     [ADR_MODEL_OPENCODE]=""
     [ADR_MODEL_CODEX]=""
+    [ADR_MOUNTS]=""
 )
 
 declare -A GLOBAL_CONFIG=()
@@ -30,7 +31,7 @@ cfg_load_global_config() {
         key="${key%"${key##*[![:space:]]}"}"
 
         case "$key" in
-            ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX)
+            ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX|ADR_MOUNTS)
                 GLOBAL_CONFIG["$key"]="$value"
                 ;;
             *)
@@ -70,7 +71,7 @@ cfg_load_project_config() {
         key="${key%"${key##*[![:space:]]}"}"
 
         case "$key" in
-            ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX)
+            ADR_TAG|ADR_AGENT|ADR_MODEL_PI|ADR_MODEL_CLAUDE|ADR_MODEL_OPENCODE|ADR_MODEL_CODEX|ADR_MOUNTS)
                 PROJECT_CONFIG["$key"]="$value"
                 ;;
             *)
@@ -122,6 +123,7 @@ cfg_export_vars() {
     export ADR_MODEL_CLAUDE="${EFFECTIVE_CONFIG[ADR_MODEL_CLAUDE]}"
     export ADR_MODEL_OPENCODE="${EFFECTIVE_CONFIG[ADR_MODEL_OPENCODE]}"
     export ADR_MODEL_CODEX="${EFFECTIVE_CONFIG[ADR_MODEL_CODEX]}"
+    export ADR_MOUNTS="${EFFECTIVE_CONFIG[ADR_MOUNTS]}"
 }
 
 cfg_get_default_agent() {
